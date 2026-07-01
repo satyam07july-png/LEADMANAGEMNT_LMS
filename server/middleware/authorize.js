@@ -2,6 +2,7 @@ import ApiError from "../utils/ApiError.js";
 import { HTTP_STATUS } from "../constants/httpStatus.js";
 import ROLES from "../constants/roles.js";
 import PERMISSIONS from "../constants/permissions.js";
+import ROLE_PERMISSIONS from "../constants/rolePermissions.js";
 
 /**
  * =====================================================

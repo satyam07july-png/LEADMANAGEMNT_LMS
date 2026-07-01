@@ -1,41 +1,176 @@
-import jwt from "jsonwebtoken";
-
 import ApiError from "../utils/ApiError.js";
 
-const authMiddleware = (req, res, next) => {
-  try {
-    const authHeader = req.headers.authorization;
+import { HTTP_STATUS } from "../constants/httpStatus.js";
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+import {
+  verifyAccessToken,
+} from "../utils/jwt.js";
+
+import {
+  findUserByIdRepository,
+} from "../repositories/authRepository.js";
+
+/**
+ * =====================================================
+ * Authentication Middleware
+ * Project : IEM Admissions CRM
+ * =====================================================
+ */
+
+const authMiddleware = async (
+  req,
+  res,
+  next
+) => {
+
+  try {
+
+    /**
+     * ----------------------------------------
+     * Authorization Header
+     * ----------------------------------------
+     */
+
+    const authHeader =
+      req.headers.authorization;
+
+    if (
+      !authHeader ||
+      !authHeader.startsWith("Bearer ")
+    ) {
+
       return next(
-        new ApiError(401, "Authorization token is required")
+        new ApiError(
+          HTTP_STATUS.UNAUTHORIZED,
+          "Authorization token is required."
+        )
       );
+
     }
 
-    const token = authHeader.split(" ")[1];
+    /**
+     * ----------------------------------------
+     * Extract Token
+     * ----------------------------------------
+     */
 
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET
-    );
+    const token =
+      authHeader.split(" ")[1];
 
-    req.user = decoded;
+    if (!token) {
+
+      return next(
+        new ApiError(
+          HTTP_STATUS.UNAUTHORIZED,
+          "Authentication token is missing."
+        )
+      );
+
+    }
+
+    /**
+     * ----------------------------------------
+     * Verify JWT
+     * ----------------------------------------
+     */
+
+    const decoded =
+      verifyAccessToken(token);
+
+    /**
+     * ----------------------------------------
+     * Check User Exists
+     * ----------------------------------------
+     */
+
+    const user =
+      await findUserByIdRepository(
+        decoded.id
+      );
+
+    if (!user) {
+
+      return next(
+        new ApiError(
+          HTTP_STATUS.UNAUTHORIZED,
+          "User not found."
+        )
+      );
+
+    }
+
+    /**
+     * ----------------------------------------
+     * Attach Safe User Object
+     * ----------------------------------------
+     */
+
+    req.user = {
+
+      id: user.id,
+
+      full_name: user.full_name,
+
+      email: user.email,
+
+      role: user.role,
+
+    };
 
     next();
 
   } catch (error) {
 
-    if (error.name === "TokenExpiredError") {
+    /**
+     * ----------------------------------------
+     * Token Expired
+     * ----------------------------------------
+     */
+
+    if (
+      error.name ===
+      "TokenExpiredError"
+    ) {
+
       return next(
-        new ApiError(401, "Token has expired")
+        new ApiError(
+          HTTP_STATUS.UNAUTHORIZED,
+          "Token has expired."
+        )
       );
+
     }
 
-    return next(
-      new ApiError(401, "Invalid authentication token")
-    );
+    /**
+     * ----------------------------------------
+     * Invalid JWT
+     * ----------------------------------------
+     */
+
+    if (
+      error.name ===
+      "JsonWebTokenError"
+    ) {
+
+      return next(
+        new ApiError(
+          HTTP_STATUS.UNAUTHORIZED,
+          "Invalid authentication token."
+        )
+      );
+
+    }
+
+    /**
+     * ----------------------------------------
+     * Unknown Error
+     * ----------------------------------------
+     */
+
+    return next(error);
 
   }
+
 };
 
 export default authMiddleware;
