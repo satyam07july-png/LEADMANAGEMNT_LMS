@@ -1,74 +1,128 @@
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
+import compression from "compression";
+import hpp from "hpp";
+import morgan from "morgan";
+
 import validateEnv from "./config/env.js";
+
+/* Routes */
 import authRoutes from "./routes/authRoutes.js";
 import courseRoutes from "./routes/courseRoutes.js";
 import departmentRoutes from "./routes/departmentRoutes.js";
-import notFound from "./middleware/notFound.js";
-import errorHandler from "./middleware/errorHandler.js";
 import employeeRoutes from "./routes/employeeRoutes.js";
 import leadRoutes from "./routes/leadRoutes.js";
-import {
-  helmetMiddleware,
-  compressionMiddleware,
-  loggerMiddleware,
-  corsMiddleware,
-  rateLimiter,
-} from "./middleware/security.js";
 import healthRoutes from "./routes/health.routes.js";
 
-
-//import dashboardRoutes from "./routes/dashboardRoutes.js";
+/* Middlewares */
+import { globalLimiter } from "./middleware/rateLimiter.js";
+import requestId from "./middleware/requestId.js";
+import requestLogger from "./middleware/requestLogger.js";
+import notFound from "./middleware/notFound.js";
+import errorHandler from "./middleware/errorHandler.js";
 
 const app = express();
 
+/**
+ * =====================================================
+ * Environment Validation
+ * =====================================================
+ */
 validateEnv();
 
-// Middlewares
+/**
+ * =====================================================
+ * Core Middlewares
+ * =====================================================
+ */
 app.use(cors());
+
 app.use(express.json());
 
-// Health Check
+app.use(
+  express.urlencoded({
+    extended: true,
+  })
+);
+
+/**
+ * =====================================================
+ * Security Middlewares
+ * =====================================================
+ */
+app.use(helmet());
+
+app.use(compression());
+
+app.use(hpp());
+
+app.use(globalLimiter);
+
+/**
+ * =====================================================
+ * Logging
+ * =====================================================
+ */
+app.use(requestId);
+
+app.use(requestLogger);
+
+app.use(morgan("dev"));
+
+/**
+ * =====================================================
+ * Root Endpoint
+ * =====================================================
+ */
 app.get("/", (req, res) => {
+
   res.status(200).json({
+
     success: true,
+
     message: "IEM LMS API Running Successfully 🚀",
+
+    version: "1.0.0",
+
   });
+
 });
 
-// Routes
+/**
+ * =====================================================
+ * Health Routes
+ * =====================================================
+ */
+app.use("/api", healthRoutes);
+
+/**
+ * =====================================================
+ * API Routes
+ * =====================================================
+ */
 app.use("/api/auth", authRoutes);
+
 app.use("/api/courses", courseRoutes);
+
 app.use("/api/departments", departmentRoutes);
+
 app.use("/api/employees", employeeRoutes);
 
 app.use("/api/leads", leadRoutes);
-app.use("/api/health", healthRoutes);
-//app.use("/api/dashboard", dashboardRoutes);
 
 /**
- * Security
+ * =====================================================
+ * 404 Handler
+ * =====================================================
  */
-
-app.use(helmetMiddleware);
-
-app.use(compressionMiddleware);
-
-app.use(loggerMiddleware);
-
-app.use(corsMiddleware);
-
-app.use(rateLimiter);
-
-/* ------------ Not Found ------------ */
-
 app.use(notFound);
 
-// Error Handler (Always Last)
+/**
+ * =====================================================
+ * Global Error Handler
+ * =====================================================
+ */
 app.use(errorHandler);
-
-
-
-
 
 export default app;

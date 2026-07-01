@@ -1,32 +1,109 @@
+import os from "os";
+import pool from "../config/db.js";
+
 /**
  * =====================================================
- * Health Controller
- * Project : IEM Admissions CRM
+ * Health Check
  * =====================================================
  */
 
-export const healthCheck = (req, res) => {
+export const health = async (req, res) => {
 
-  return res.status(200).json({
+  try {
+
+    await pool.query("SELECT 1");
+
+    return res.status(200).json({
+
+      success: true,
+
+      message: "Server is healthy.",
+
+      data: {
+
+        status: "UP",
+
+        uptime: process.uptime(),
+
+        timestamp: new Date().toISOString(),
+
+        nodeVersion: process.version,
+
+        platform: process.platform,
+
+        cpuCores: os.cpus().length,
+
+        totalMemory: os.totalmem(),
+
+        freeMemory: os.freemem(),
+
+      },
+
+    });
+
+  } catch (error) {
+
+    return res.status(500).json({
+
+      success: false,
+
+      message: "Health check failed.",
+
+    });
+
+  }
+
+};
+
+/**
+ * =====================================================
+ * Readiness Check
+ * =====================================================
+ */
+
+export const readiness = async (req, res) => {
+
+  try {
+
+    await pool.query("SELECT 1");
+
+    return res.status(200).json({
+
+      success: true,
+
+      status: "READY",
+
+    });
+
+  } catch {
+
+    return res.status(503).json({
+
+      success: false,
+
+      status: "NOT_READY",
+
+    });
+
+  }
+
+};
+
+/**
+ * =====================================================
+ * Liveness Check
+ * =====================================================
+ */
+
+export const liveness = (req, res) => {
+
+  res.status(200).json({
 
     success: true,
 
-    message: "Server is running successfully.",
+    status: "ALIVE",
 
-    data: {
-
-      status: "UP",
-
-      environment:
-        process.env.NODE_ENV || "development",
-
-      uptime: process.uptime(),
-
-      timestamp: new Date().toISOString(),
-
-      node_version: process.version,
-
-    },
+    uptime: process.uptime(),
 
   });
 

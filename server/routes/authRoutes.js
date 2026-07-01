@@ -1,5 +1,7 @@
 import express from "express";
-
+import {
+  loginLimiter,
+} from "../middleware/rateLimiter.js";
 import {
   register,
   login,
@@ -41,6 +43,7 @@ router.post(
 
 router.post(
   "/login",
+  loginLimiter,
   loginValidator,
   validate,
   login

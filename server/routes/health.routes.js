@@ -1,17 +1,17 @@
 import express from "express";
 
 import {
-  healthCheck,
+    health,
+    readiness,
+    liveness,
 } from "../controllers/health.controller.js";
 
 const router = express.Router();
 
-/**
- * =====================================================
- * Health Check
- * =====================================================
- */
+router.get("/health", health);
 
-router.get("/", healthCheck);
+router.get("/ready", readiness);
+
+router.get("/live", liveness);
 
 export default router;

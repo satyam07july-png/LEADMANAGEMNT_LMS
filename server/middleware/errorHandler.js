@@ -1,11 +1,5 @@
 import ApiError from "../utils/ApiError.js";
-
-/**
- * =====================================================
- * Global Error Handler
- * Project : IEM Admissions CRM
- * =====================================================
- */
+import errorLogger from "../utils/errorLogger.js";
 
 const errorHandler = (
   err,
@@ -14,92 +8,35 @@ const errorHandler = (
   next
 ) => {
 
-  let statusCode = err.statusCode || 500;
+  errorLogger({
+    error: err,
+    req,
+  });
 
-  let message =
-    err.message || "Internal Server Error";
+  if (err instanceof ApiError) {
 
-  /**
-   * ----------------------------------------
-   * PostgreSQL Errors
-   * ----------------------------------------
-   */
+    return res.status(err.statusCode).json({
 
-  switch (err.code) {
+      success: false,
 
-    case "23505":
-      statusCode = 409;
-      message = "Duplicate record already exists.";
-      break;
+      statusCode: err.statusCode,
 
-    case "23503":
-      statusCode = 400;
-      message = "Invalid reference data.";
-      break;
+      message: err.message,
 
-    case "23502":
-      statusCode = 400;
-      message = "Required field is missing.";
-      break;
-
-    case "22P02":
-      statusCode = 400;
-      message = "Invalid input format.";
-      break;
+    });
 
   }
 
-  /**
-   * ----------------------------------------
-   * JWT Errors
-   * ----------------------------------------
-   */
-
-  if (err.name === "JsonWebTokenError") {
-
-    statusCode = 401;
-    message = "Invalid authentication token.";
-
-  }
-
-  if (err.name === "TokenExpiredError") {
-
-    statusCode = 401;
-    message = "Authentication token has expired.";
-
-  }
-
-  /**
-   * ----------------------------------------
-   * Validation Errors
-   * ----------------------------------------
-   */
-
-  if (
-    err.name === "ValidationError"
-  ) {
-
-    statusCode = 400;
-
-  }
-
-  /**
-   * ----------------------------------------
-   * Response
-   * ----------------------------------------
-   */
-
-  return res.status(statusCode).json({
+  return res.status(500).json({
 
     success: false,
 
-    statusCode,
+    statusCode: 500,
 
-    message,
-
-    ...(process.env.NODE_ENV === "development" && {
-      stack: err.stack,
-    }),
+    message:
+      process.env.NODE_ENV === "development"
+        ? err.message
+        : "Internal Server Error",
 
   });
 
