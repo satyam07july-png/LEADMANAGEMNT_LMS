@@ -11,7 +11,10 @@ export const registerUser = async (userData) => {
   );
 
   if (existingUser.rows.length > 0) {
-    throw new Error("Email already exists");
+    throw new ApiError(
+    409,
+    "Email already exists"
+);
   }
 
   // Hash Password

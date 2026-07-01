@@ -1,28 +1,40 @@
 import jwt from "jsonwebtoken";
 
+import ApiError from "../utils/ApiError.js";
+
 const authMiddleware = (req, res, next) => {
   try {
-    // Get Token
-    const token = req.headers.authorization?.split(" ")[1];
+    const authHeader = req.headers.authorization;
 
-    if (!token) {
-      return res.status(401).json({
-        success: false,
-        message: "Access Denied. No Token Provided",
-      });
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return next(
+        new ApiError(401, "Authorization token is required")
+      );
     }
 
-    // Verify Token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const token = authHeader.split(" ")[1];
+
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET
+    );
 
     req.user = decoded;
 
     next();
+
   } catch (error) {
-    return res.status(401).json({
-      success: false,
-      message: "Invalid Token",
-    });
+
+    if (error.name === "TokenExpiredError") {
+      return next(
+        new ApiError(401, "Token has expired")
+      );
+    }
+
+    return next(
+      new ApiError(401, "Invalid authentication token")
+    );
+
   }
 };
 
