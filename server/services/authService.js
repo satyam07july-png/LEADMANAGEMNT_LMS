@@ -38,6 +38,8 @@ import {
   updateEmailVerificationRepository,   
 } from "../repositories/authRepository.js";
 
+import auditLogger from "../utils/auditLogger.js";
+
 /**
  * =====================================================
  * Register User

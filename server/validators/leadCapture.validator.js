@@ -1,0 +1,76 @@
+import { body } from "express-validator";
+
+export const capturePublicLeadValidator = [
+
+  body("full_name")
+    .trim()
+    .notEmpty()
+    .withMessage("Full name is required.")
+    .isLength({ min: 3, max: 100 })
+    .withMessage("Full name must be between 3 and 100 characters."),
+
+  body("mobile")
+    .trim()
+    .notEmpty()
+    .withMessage("Mobile number is required.")
+    .matches(/^[6-9]\d{9}$/)
+    .withMessage("Invalid mobile number."),
+
+  body("email")
+    .optional({ nullable: true, checkFalsy: true })
+    .isEmail()
+    .withMessage("Invalid email address.")
+    .normalizeEmail(),
+
+  body("campaign_id")
+    .notEmpty()
+    .withMessage("Campaign is required.")
+    .isInt({ min: 1 })
+    .withMessage("Invalid campaign id."),
+
+  body("source")
+    .notEmpty()
+    .withMessage("Source is required.")
+    .isIn([
+      "META",
+      "GOOGLE",
+      "WEBSITE",
+      "LANDING_PAGE",
+      "INSTAGRAM",
+      "WHATSAPP",
+      "REFERRAL",
+      "OFFLINE"
+    ])
+    .withMessage("Invalid lead source."),
+
+  body("utm_source")
+    .optional()
+    .trim()
+    .isLength({ max: 100 }),
+
+  body("utm_medium")
+    .optional()
+    .trim()
+    .isLength({ max: 100 }),
+
+  body("utm_campaign")
+    .optional()
+    .trim()
+    .isLength({ max: 150 }),
+
+  body("utm_content")
+    .optional()
+    .trim()
+    .isLength({ max: 150 }),
+
+  body("utm_term")
+    .optional()
+    .trim()
+    .isLength({ max: 150 }),
+
+  body("external_lead_id")
+    .optional()
+    .trim()
+    .isLength({ max: 255 })
+
+];

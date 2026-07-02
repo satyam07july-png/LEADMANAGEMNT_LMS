@@ -2,72 +2,76 @@ import pool from "../config/db.js";
 
 /**
  * =====================================================
+ * Generate Next Lead Code
+ * =====================================================
+ */
+export const getNextLeadCodeRepository = async (client) => {
+  const result = await client.query(`
+    SELECT nextval('lead_code_seq') AS sequence;
+  `);
+
+  return result.rows[0].sequence;
+};
+
+/**
+ * =====================================================
  * Create Lead
  * =====================================================
  */
 export const createLeadRepository = async (
   client,
-  leadData
+  lead
 ) => {
-  const {
-    lead_code,
-    full_name,
-    phone,
-    email,
-    course_id,
-    source,
-    status,
-    priority,
-    assigned_to,
-    remarks,
-    next_followup_date,
-    last_contacted_at,
-    created_by,
-  } = leadData;
 
   const query = `
     INSERT INTO leads (
+
       lead_code,
       full_name,
-      phone,
       email,
+      mobile,
       course_id,
+      assigned_to,
       source,
       status,
       priority,
-      assigned_to,
       remarks,
-      next_followup_date,
-      last_contacted_at,
+      next_followup,
       created_by
+
     )
+
     VALUES (
-      $1,$2,$3,$4,$5,
-      $6,$7,$8,$9,$10,
-      $11,$12,$13
+
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
+
     )
+
     RETURNING *;
   `;
 
   const values = [
-    lead_code,
-    full_name,
-    phone,
-    email,
-    course_id,
-    source,
-    status,
-    priority,
-    assigned_to,
-    remarks,
-    next_followup_date,
-    last_contacted_at,
-    created_by,
+
+    lead.lead_code,
+    lead.full_name,
+    lead.email,
+    lead.mobile,
+    lead.course_id,
+    lead.assigned_to,
+    lead.source,
+    lead.status,
+    lead.priority,
+    lead.remarks,
+    lead.next_followup,
+    lead.created_by,
+
   ];
 
-  const result = await client.query(query, values);
+  const result =
+    await client.query(query, values);
 
   return result.rows[0];
+
 };
 
 /**
@@ -75,57 +79,25 @@ export const createLeadRepository = async (
  * Find Lead By ID
  * =====================================================
  */
-export const getLeadByIdRepository = async (id) => {
-  const query = `
-    SELECT
-
-      l.*,
-
-      c.course_name,
-
-      e.employee_code,
-
-      u.full_name AS counsellor_name
-
-    FROM leads l
-
-    LEFT JOIN courses c
-      ON l.course_id = c.id
-
-    LEFT JOIN employees e
-      ON l.assigned_to = e.id
-
-    LEFT JOIN users u
-      ON e.user_id = u.id
-
-    WHERE
-      l.id = $1
-      AND l.is_deleted = FALSE;
-  `;
-
-  const result = await pool.query(query, [id]);
-
-  return result.rows[0];
-};
-
-/**
- * =====================================================
- * Find Lead By Phone
- * =====================================================
- */
-export const findLeadByPhoneRepository = async (
-  phone
+export const findLeadByIdRepository = async (
+  id
 ) => {
-  const query = `
-    SELECT *
-    FROM leads
-    WHERE phone = $1
-      AND is_deleted = FALSE;
-  `;
 
-  const result = await pool.query(query, [phone]);
+  const result = await pool.query(
+
+    `
+      SELECT *
+      FROM leads
+      WHERE id = $1
+      AND is_deleted = FALSE;
+    `,
+
+    [id]
+
+  );
 
   return result.rows[0];
+
 };
 
 /**
@@ -136,88 +108,48 @@ export const findLeadByPhoneRepository = async (
 export const findLeadByEmailRepository = async (
   email
 ) => {
-  const query = `
-    SELECT *
-    FROM leads
-    WHERE email = $1
+
+  const result = await pool.query(
+
+    `
+      SELECT *
+      FROM leads
+      WHERE email = $1
       AND is_deleted = FALSE;
-  `;
+    `,
 
-  const result = await pool.query(query, [email]);
+    [email]
 
-  return result.rows[0];
-};
-
-/**
- * =====================================================
- * Get Last Lead
- * =====================================================
- */
-export const getLastLeadRepository = async () => {
-  const query = `
-    SELECT
-      lead_code
-    FROM leads
-    ORDER BY id DESC
-    LIMIT 1;
-  `;
-
-  const result = await pool.query(query);
+  );
 
   return result.rows[0];
+
 };
 
 /**
  * =====================================================
- * Check Lead Exists
+ * Find Lead By Mobile
  * =====================================================
  */
-export const leadExistsRepository = async (
-  id
+export const findLeadByMobileRepository = async (
+  mobile
 ) => {
-  const query = `
-    SELECT
-      EXISTS(
-        SELECT 1
-        FROM leads
-        WHERE
-          id = $1
-          AND is_deleted = FALSE
-      ) AS exists;
-  `;
 
-  const result = await pool.query(query, [id]);
+  const result = await pool.query(
 
-  return result.rows[0].exists;
-};
-
-/**
- * =====================================================
- * Get Lead Basic Details
- * =====================================================
- */
-export const getLeadBasicRepository = async (
-  id
-) => {
-  const query = `
-    SELECT
-      id,
-      lead_code,
-      full_name,
-      phone,
-      email,
-      status,
-      priority,
-      assigned_to
-    FROM leads
-    WHERE
-      id = $1
+    `
+      SELECT *
+      FROM leads
+      WHERE mobile = $1
       AND is_deleted = FALSE;
-  `;
+    `,
 
-  const result = await pool.query(query, [id]);
+    [mobile]
+
+  );
 
   return result.rows[0];
+
 };
 
 /**
@@ -226,220 +158,220 @@ export const getLeadBasicRepository = async (
  * Search + Filter + Pagination + Sorting
  * =====================================================
  */
-export const getAllLeadsRepository = async ({
-  page = 1,
-  limit = 10,
-  search = "",
-  status,
-  priority,
-  source,
-  assigned_to,
-  course_id,
-  sortBy = "created_at",
-  sortOrder = "DESC",
-}) => {
 
-  const offset = (page - 1) * limit;
+export const getLeadsRepository = async (filters) => {
+
+  const {
+    page = 1,
+    limit = 10,
+    search = "",
+    source,
+    status,
+    priority,
+    assigned_to,
+    sortBy = "created_at",
+    order = "DESC",
+  } = filters;
+
+  let query = `
+    SELECT
+      l.*,
+      e.full_name AS assigned_employee,
+      c.course_name
+    FROM leads l
+    LEFT JOIN employees e
+      ON l.assigned_to = e.id
+    LEFT JOIN courses c
+      ON l.course_id = c.id
+    WHERE l.is_deleted = FALSE
+  `;
 
   const values = [];
   let index = 1;
 
-  let query = `
-    SELECT
-
-      l.id,
-      l.lead_code,
-      l.full_name,
-      l.phone,
-      l.email,
-      l.source,
-      l.status,
-      l.priority,
-      l.remarks,
-      l.next_followup_date,
-      l.last_contacted_at,
-      l.created_at,
-
-      c.id AS course_id,
-      c.course_name,
-
-      e.id AS employee_id,
-      e.employee_code,
-
-      u.full_name AS counsellor_name
-
-    FROM leads l
-
-    LEFT JOIN courses c
-      ON l.course_id = c.id
-
-    LEFT JOIN employees e
-      ON l.assigned_to = e.id
-
-    LEFT JOIN users u
-      ON e.user_id = u.id
-
-    WHERE l.is_deleted = FALSE
-  `;
-
   /**
-   * ------------------------------
-   * Global Search
-   * ------------------------------
+   * --------------------------------------
+   * Search
+   * --------------------------------------
    */
+
   if (search) {
 
     query += `
       AND (
+
         l.lead_code ILIKE $${index}
+
         OR l.full_name ILIKE $${index}
-        OR l.phone ILIKE $${index}
+
         OR l.email ILIKE $${index}
+
+        OR l.mobile ILIKE $${index}
+
       )
     `;
 
     values.push(`%${search}%`);
+
     index++;
+
   }
 
   /**
-   * ------------------------------
-   * Status Filter
-   * ------------------------------
-   */
-  if (status) {
-
-    query += `
-      AND l.status = $${index}
-    `;
-
-    values.push(status);
-    index++;
-  }
-
-  /**
-   * ------------------------------
-   * Priority Filter
-   * ------------------------------
-   */
-  if (priority) {
-
-    query += `
-      AND l.priority = $${index}
-    `;
-
-    values.push(priority);
-    index++;
-  }
-
-  /**
-   * ------------------------------
+   * --------------------------------------
    * Source Filter
-   * ------------------------------
+   * --------------------------------------
    */
+
   if (source) {
 
     query += `
+
       AND l.source = $${index}
+
     `;
 
     values.push(source);
+
     index++;
+
   }
 
   /**
-   * ------------------------------
-   * Counsellor Filter
-   * ------------------------------
+   * --------------------------------------
+   * Status Filter
+   * --------------------------------------
    */
+
+  if (status) {
+
+    query += `
+
+      AND l.status = $${index}
+
+    `;
+
+    values.push(status);
+
+    index++;
+
+  }
+
+  /**
+   * --------------------------------------
+   * Priority Filter
+   * --------------------------------------
+   */
+
+  if (priority) {
+
+    query += `
+
+      AND l.priority = $${index}
+
+    `;
+
+    values.push(priority);
+
+    index++;
+
+  }
+
+  /**
+   * --------------------------------------
+   * Assigned Employee Filter
+   * --------------------------------------
+   */
+
   if (assigned_to) {
 
     query += `
+
       AND l.assigned_to = $${index}
+
     `;
 
     values.push(assigned_to);
+
     index++;
+
   }
 
   /**
-   * ------------------------------
-   * Course Filter
-   * ------------------------------
-   */
-  if (course_id) {
-
-    query += `
-      AND l.course_id = $${index}
-    `;
-
-    values.push(course_id);
-    index++;
-  }
-
-  /**
-   * ------------------------------
+   * --------------------------------------
    * Count Query
-   * ------------------------------
+   * --------------------------------------
    */
 
-  const countQuery = `
-    SELECT COUNT(*) AS total
-    FROM (${query}) AS total_leads;
-  `;
+  const countQuery =
+    query.replace(
+      "SELECT\n      l.*,\n      e.full_name AS assigned_employee,\n      c.course_name",
+      "SELECT COUNT(*)"
+    );
 
-  const countResult = await pool.query(
-    countQuery,
-    values
-  );
+  const countResult =
+    await pool.query(
+      countQuery,
+      values
+    );
+
+  const totalRecords =
+    Number(
+      countResult.rows[0].count
+    );
 
   /**
-   * ------------------------------
+   * --------------------------------------
    * Sorting
-   * ------------------------------
+   * --------------------------------------
    */
 
-  const allowedSortFields = [
+  const allowedSort = [
+
     "created_at",
+
     "full_name",
-    "status",
-    "priority",
+
     "lead_code",
+
+    "status",
+
+    "priority",
+
   ];
 
-  const finalSortField = allowedSortFields.includes(sortBy)
-    ? sortBy
-    : "created_at";
+  const sortColumn =
+    allowedSort.includes(sortBy)
+      ? sortBy
+      : "created_at";
 
-  const finalSortOrder =
-    sortOrder.toUpperCase() === "ASC"
+  const sortOrder =
+    order.toUpperCase() === "ASC"
       ? "ASC"
       : "DESC";
 
   query += `
-    ORDER BY
-      l.${finalSortField}
-      ${finalSortOrder}
-  `;
 
-  /**
-   * ------------------------------
-   * Pagination
-   * ------------------------------
-   */
+    ORDER BY l.${sortColumn} ${sortOrder}
 
-  query += `
     LIMIT $${index}
+
     OFFSET $${index + 1}
+
   `;
 
-  values.push(limit);
-  values.push(offset);
+  values.push(Number(limit));
 
-  const result = await pool.query(
-    query,
-    values
+  values.push(
+    (Number(page) - 1) *
+      Number(limit)
   );
+
+  const result =
+    await pool.query(
+      query,
+      values
+    );
 
   return {
 
@@ -447,28 +379,15 @@ export const getAllLeadsRepository = async ({
 
     pagination: {
 
-      total: Number(
-        countResult.rows[0].total
-      ),
-
       page: Number(page),
 
       limit: Number(limit),
 
+      totalRecords,
+
       totalPages: Math.ceil(
-        Number(countResult.rows[0].total) /
-        Number(limit)
+        totalRecords / Number(limit)
       ),
-
-      hasNextPage:
-        Number(page) <
-        Math.ceil(
-          Number(countResult.rows[0].total) /
-          Number(limit)
-        ),
-
-      hasPreviousPage:
-        Number(page) > 1,
 
     },
 
@@ -481,67 +400,61 @@ export const getAllLeadsRepository = async ({
  * Update Lead
  * =====================================================
  */
+
 export const updateLeadRepository = async (
+  client,
   id,
-  leadData
+  lead
 ) => {
+  try {
 
-  const {
-    full_name,
-    phone,
-    email,
-    course_id,
-    source,
-    status,
-    priority,
-    assigned_to,
-    remarks,
-    next_followup_date,
-    last_contacted_at,
-  } = leadData;
+    const query = `
+      UPDATE leads
+      SET
+        full_name = $1,
+        email = $2,
+        mobile = $3,
+        course_id = $4,
+        assigned_to = $5,
+        source = $6,
+        status = $7,
+        priority = $8,
+        remarks = $9,
+        next_followup = $10,
+        updated_by = $11,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = $12
+      RETURNING *;
+    `;
 
-  const query = `
-    UPDATE leads
-    SET
-      full_name = $1,
-      phone = $2,
-      email = $3,
-      course_id = $4,
-      source = $5,
-      status = $6,
-      priority = $7,
-      assigned_to = $8,
-      remarks = $9,
-      next_followup_date = $10,
-      last_contacted_at = $11,
-      updated_at = CURRENT_TIMESTAMP
-    WHERE
-      id = $12
-      AND is_deleted = FALSE
-    RETURNING *;
-  `;
+    const values = [
+      lead.full_name,
+      lead.email,
+      lead.mobile,
+      lead.course_id,
+      lead.assigned_to,
+      lead.source,
+      lead.status,
+      lead.priority,
+      lead.remarks,
+      lead.next_followup,
+      lead.updated_by,
+      id,
+    ];
 
-  const values = [
-    full_name,
-    phone,
-    email,
-    course_id,
-    source,
-    status,
-    priority,
-    assigned_to,
-    remarks,
-    next_followup_date,
-    last_contacted_at,
-    id,
-  ];
+    console.log(values);
 
-  const result = await pool.query(
-    query,
-    values
-  );
+    const result = await client.query(query, values);
 
-  return result.rows[0];
+    return result.rows[0];
+
+  } catch (err) {
+
+    console.error("UPDATE LEAD ERROR:", err);
+
+    throw err;
+
+  }
 };
 
 /**
@@ -549,59 +462,81 @@ export const updateLeadRepository = async (
  * Soft Delete Lead
  * =====================================================
  */
-export const softDeleteLeadRepository = async (
-  id
+
+export const deleteLeadRepository = async (
+  client,
+  id,
+  updatedBy
 ) => {
 
   const query = `
     UPDATE leads
+
     SET
+
       is_deleted = TRUE,
+
+      updated_by = $1,
+
       updated_at = CURRENT_TIMESTAMP
-    WHERE
-      id = $1
-      AND is_deleted = FALSE
+
+    WHERE id = $2
+
     RETURNING *;
   `;
 
-  const result = await pool.query(
-    query,
-    [id]
-  );
+  const result =
+    await client.query(query, [
+
+      updatedBy,
+
+      id,
+
+    ]);
 
   return result.rows[0];
+
 };
 
 /**
  * =====================================================
- * Update Lead Status
+ * Restore Lead
  * =====================================================
  */
-export const updateLeadStatusRepository = async (
+
+export const restoreLeadRepository = async (
+  client,
   id,
-  status
+  updatedBy
 ) => {
 
   const query = `
     UPDATE leads
+
     SET
-      status = $1,
+
+      is_deleted = FALSE,
+
+      updated_by = $1,
+
       updated_at = CURRENT_TIMESTAMP
-    WHERE
-      id = $2
-      AND is_deleted = FALSE
+
+    WHERE id = $2
+
     RETURNING *;
   `;
 
-  const result = await pool.query(
-    query,
-    [
-      status,
+  const result =
+    await client.query(query, [
+
+      updatedBy,
+
       id,
-    ]
-  );
+
+    ]);
 
   return result.rows[0];
+
 };
 
 /**
@@ -609,106 +544,96 @@ export const updateLeadStatusRepository = async (
  * Assign Lead
  * =====================================================
  */
+
 export const assignLeadRepository = async (
+  client,
   id,
-  assigned_to
+  employeeId,
+  updatedBy
 ) => {
 
   const query = `
     UPDATE leads
+
     SET
+
       assigned_to = $1,
+
+      updated_by = $2,
+
       updated_at = CURRENT_TIMESTAMP
-    WHERE
-      id = $2
-      AND is_deleted = FALSE
+
+    WHERE id = $3
+
     RETURNING *;
   `;
 
-  const result = await pool.query(
-    query,
-    [
-      assigned_to,
+  const result =
+    await client.query(query, [
+
+      employeeId,
+
+      updatedBy,
+
       id,
-    ]
-  );
+
+    ]);
 
   return result.rows[0];
+
 };
 
 /**
  * =====================================================
- * Update Lead Priority
+ * Update Lead Status
  * =====================================================
  */
-export const updateLeadPriorityRepository = async (
+
+export const updateLeadStatusRepository = async (
+  client,
   id,
-  priority
+  status,
+  updatedBy
 ) => {
 
   const query = `
     UPDATE leads
+
     SET
-      priority = $1,
+
+      status = $1,
+
+      updated_by = $2,
+
       updated_at = CURRENT_TIMESTAMP
-    WHERE
-      id = $2
-      AND is_deleted = FALSE
+
+    WHERE id = $3
+
     RETURNING *;
   `;
 
-  const result = await pool.query(
-    query,
-    [
-      priority,
+  const result =
+    await client.query(query, [
+
+      status,
+
+      updatedBy,
+
       id,
-    ]
-  );
+
+    ]);
 
   return result.rows[0];
+
 };
 
 /**
  * =====================================================
- * Update Lead Follow-up
+ * Lead Statistics
  * =====================================================
  */
-export const updateLeadFollowupRepository = async (
-  id,
-  next_followup_date,
-  last_contacted_at
-) => {
 
-  const query = `
-    UPDATE leads
-    SET
-      next_followup_date = $1,
-      last_contacted_at = $2,
-      updated_at = CURRENT_TIMESTAMP
-    WHERE
-      id = $3
-      AND is_deleted = FALSE
-    RETURNING *;
-  `;
-
-  const result = await pool.query(
-    query,
-    [
-      next_followup_date,
-      last_contacted_at,
-      id,
-    ]
-  );
-
-  return result.rows[0];
-};
-
-/**
- * =====================================================
- * Dashboard Statistics
- * =====================================================
- */
-export const getLeadDashboardRepository = async () => {
+export const getLeadStatisticsRepository = async () => {
 
   const query = `
     SELECT
@@ -718,33 +643,33 @@ export const getLeadDashboardRepository = async () => {
       ) AS total_leads,
 
       COUNT(*) FILTER (
-        WHERE status = 'new'
-          AND is_deleted = FALSE
+        WHERE status = 'NEW'
+        AND is_deleted = FALSE
       ) AS new_leads,
 
       COUNT(*) FILTER (
-        WHERE status = 'contacted'
-          AND is_deleted = FALSE
+        WHERE status = 'CONTACTED'
+        AND is_deleted = FALSE
       ) AS contacted_leads,
 
       COUNT(*) FILTER (
-        WHERE status = 'follow_up'
-          AND is_deleted = FALSE
+        WHERE status = 'FOLLOW_UP'
+        AND is_deleted = FALSE
       ) AS followup_leads,
 
       COUNT(*) FILTER (
-        WHERE status = 'interested'
-          AND is_deleted = FALSE
-      ) AS interested_leads,
+        WHERE status = 'QUALIFIED'
+        AND is_deleted = FALSE
+      ) AS qualified_leads,
 
       COUNT(*) FILTER (
-        WHERE status = 'admission_done'
-          AND is_deleted = FALSE
+        WHERE status = 'ADMISSION_DONE'
+        AND is_deleted = FALSE
       ) AS admission_done,
 
       COUNT(*) FILTER (
-        WHERE status = 'lost'
-          AND is_deleted = FALSE
+        WHERE status = 'LOST'
+        AND is_deleted = FALSE
       ) AS lost_leads
 
     FROM leads;
@@ -758,138 +683,95 @@ export const getLeadDashboardRepository = async () => {
 
 /**
  * =====================================================
- * Today's Follow-ups
+ * Add Lead Note
  * =====================================================
  */
-export const getTodayFollowupsRepository = async () => {
 
-  const query = `
-    SELECT
-
-      l.id,
-      l.lead_code,
-      l.full_name,
-      l.phone,
-      l.priority,
-      l.next_followup_date,
-
-      e.employee_code,
-
-      u.full_name
-      AS counsellor_name
-
-    FROM leads l
-
-    LEFT JOIN employees e
-      ON l.assigned_to = e.id
-
-    LEFT JOIN users u
-      ON e.user_id = u.id
-
-    WHERE
-
-      DATE(
-        l.next_followup_date
-      ) = CURRENT_DATE
-
-      AND l.is_deleted = FALSE
-
-    ORDER BY
-
-      l.next_followup_date ASC;
-  `;
-
-  const result = await pool.query(query);
-
-  return result.rows;
-
-};
-
-/**
- * =====================================================
- * Recent Leads
- * =====================================================
- */
-export const getRecentLeadsRepository = async (
-  limit = 10
+export const addLeadNoteRepository = async (
+  client,
+  leadId,
+  note,
+  userId
 ) => {
 
   const query = `
-    SELECT *
+    INSERT INTO lead_notes (
 
-    FROM leads
+      lead_id,
+      note,
+      created_by
 
-    WHERE is_deleted = FALSE
+    )
 
-    ORDER BY created_at DESC
+    VALUES (
 
-    LIMIT $1;
+      $1,$2,$3
+
+    )
+
+    RETURNING *;
   `;
 
-  const result = await pool.query(
+  const result = await client.query(
+
     query,
-    [limit]
+
+    [
+
+      leadId,
+
+      note,
+
+      userId,
+
+    ]
+
   );
 
-  return result.rows;
+  return result.rows[0];
 
 };
 
 /**
  * =====================================================
- * Lead Status Analytics
+ * Get Lead Notes
  * =====================================================
  */
-export const getLeadStatusAnalyticsRepository =
-async () => {
+
+export const getLeadNotesRepository = async (
+  leadId
+) => {
 
   const query = `
     SELECT
 
-      status,
+      ln.*,
 
-      COUNT(*) AS total
+      e.full_name AS created_by_name
 
-    FROM leads
+    FROM lead_notes ln
 
-    WHERE is_deleted = FALSE
+    LEFT JOIN employees e
 
-    GROUP BY status
+      ON ln.created_by = e.id
 
-    ORDER BY total DESC;
+    WHERE ln.lead_id = $1
+
+    ORDER BY ln.created_at DESC;
   `;
 
-  const result = await pool.query(query);
+  const result =
+    await pool.query(
 
-  return result.rows;
+      query,
 
-};
+      [
 
-/**
- * =====================================================
- * Lead Source Analytics
- * =====================================================
- */
-export const getLeadSourceAnalyticsRepository =
-async () => {
+        leadId,
 
-  const query = `
-    SELECT
+      ]
 
-      source,
-
-      COUNT(*) AS total
-
-    FROM leads
-
-    WHERE is_deleted = FALSE
-
-    GROUP BY source
-
-    ORDER BY total DESC;
-  `;
-
-  const result = await pool.query(query);
+    );
 
   return result.rows;
 
@@ -897,75 +779,99 @@ async () => {
 
 /**
  * =====================================================
- * Priority Analytics
+ * Add Lead Timeline
  * =====================================================
  */
-export const getLeadPriorityAnalyticsRepository =
-async () => {
+
+export const addLeadTimelineRepository = async (
+  client,
+  leadId,
+  action,
+  remarks,
+  userId
+) => {
 
   const query = `
-    SELECT
+    INSERT INTO lead_timeline (
 
-      priority,
+      lead_id,
+      action,
+      remarks,
+      created_by
 
-      COUNT(*) AS total
+    )
 
-    FROM leads
+    VALUES (
 
-    WHERE is_deleted = FALSE
+      $1,$2,$3,$4
 
-    GROUP BY priority
+    )
 
-    ORDER BY total DESC;
+    RETURNING *;
   `;
 
-  const result = await pool.query(query);
+  const result = await client.query(
 
-  return result.rows;
+    query,
+
+    [
+
+      leadId,
+
+      action,
+
+      remarks,
+
+      userId,
+
+    ]
+
+  );
+
+  return result.rows[0];
 
 };
 
 /**
  * =====================================================
- * Counsellor Performance
+ * Get Lead Timeline
  * =====================================================
  */
-export const getCounsellorPerformanceRepository =
-async () => {
+
+export const getLeadTimelineRepository = async (
+  leadId
+) => {
 
   const query = `
     SELECT
 
-      e.id,
+      lt.*,
 
-      e.employee_code,
+      e.full_name AS created_by_name
 
-      u.full_name,
+    FROM lead_timeline lt
 
-      COUNT(l.id) AS total_leads
+    LEFT JOIN employees e
 
-    FROM employees e
+      ON lt.created_by = e.id
 
-    INNER JOIN users u
+    WHERE lt.lead_id = $1
 
-      ON e.user_id = u.id
-
-    LEFT JOIN leads l
-
-      ON l.assigned_to = e.id
-
-      AND l.is_deleted = FALSE
-
-    GROUP BY
-
-      e.id,
-      e.employee_code,
-      u.full_name
-
-    ORDER BY total_leads DESC;
+    ORDER BY lt.created_at DESC;
   `;
 
-  const result = await pool.query(query);
+  const result =
+    await pool.query(
+
+      query,
+
+      [
+
+        leadId,
+
+      ]
+
+    );
 
   return result.rows;
 

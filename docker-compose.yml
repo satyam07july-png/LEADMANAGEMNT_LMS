@@ -2,11 +2,32 @@ version: "3.9"
 
 services:
 
+  backend:
+
+    build: .
+
+    container_name: iem-lms-backend
+
+    restart: always
+
+    ports:
+      - "5000:5000"
+
+    env_file:
+      - .env
+
+    depends_on:
+      - postgres
+
+    volumes:
+      - .:/app
+      - /app/node_modules
+
   postgres:
 
     image: postgres:16
 
-    container_name: iem_postgres
+    container_name: iem-lms-db
 
     restart: always
 
@@ -19,38 +40,10 @@ services:
       POSTGRES_DB: iem_lms
 
     ports:
-
       - "5432:5432"
 
     volumes:
-
       - postgres_data:/var/lib/postgresql/data
-
-  backend:
-
-    build: ./server
-
-    container_name: iem_backend
-
-    restart: always
-
-    depends_on:
-
-      - postgres
-
-    ports:
-
-      - "5000:5000"
-
-    env_file:
-
-      - ./server/.env
-
-    volumes:
-
-      - ./server:/app
-
-      - /app/node_modules
 
 volumes:
 

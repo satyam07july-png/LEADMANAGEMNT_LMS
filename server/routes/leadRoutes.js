@@ -1,69 +1,55 @@
 import express from "express";
 
+import authMiddleware from "../middleware/authMiddleware.js";
+import roleMiddleware from "../middleware/roleMiddleware.js";
+import validate from "../middleware/validate.js";
+
+import ROLES from "../constants/roles.js";
+
 import {
+
+  createLeadValidator,
+  updateLeadValidator,
+  assignLeadValidator,
+  updateLeadStatusValidator,
+  addLeadNoteValidator,
+
+} from "../validators/lead.validator.js";
+
+import {
+
   createLead,
   getAllLeads,
   getLeadById,
   updateLead,
   deleteLead,
-  updateLeadStatus,
+  restoreLead,
+
+  getLeadStatistics,
+
   assignLead,
-  updateLeadPriority,
-  updateLeadFollowup,
-  getDashboard,
-  getTodayFollowups,
-  getRecentLeads,
-  getLeadAnalytics,
+  updateLeadStatus,
+
+  addLeadNote,
+  getLeadNotes,
+  getLeadTimeline,
+
 } from "../controllers/leadController.js";
-
-import {
-  createLeadValidator,
-  updateLeadValidator,
-  updateLeadStatusValidator,
-  assignLeadValidator,
-  idValidator,
-} from "../validators/lead.validator.js";
-
-import authMiddleware from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-/* ==========================================================
-   Dashboard
-========================================================== */
-
-router.get(
-  "/dashboard",
-  authMiddleware,
-  getDashboard
-);
-
-router.get(
-  "/dashboard/analytics",
-  authMiddleware,
-  getLeadAnalytics
-);
-
-router.get(
-  "/dashboard/recent",
-  authMiddleware,
-  getRecentLeads
-);
-
-router.get(
-  "/dashboard/followups",
-  authMiddleware,
-  getTodayFollowups
-);
-
-/* ==========================================================
-   Lead CRUD
-========================================================== */
+/**
+ * =====================================================
+ * Lead CRUD
+ * =====================================================
+ */
 
 router.post(
   "/",
   authMiddleware,
+  roleMiddleware(ROLES.ADMIN),
   createLeadValidator,
+  validate,
   createLead
 );
 
@@ -73,72 +59,106 @@ router.get(
   getAllLeads
 );
 
+/**
+ * Statistics
+ * IMPORTANT:
+ * Static routes must come before /:id
+ */
+
+router.get(
+  "/statistics",
+  authMiddleware,
+  getLeadStatistics
+);
+
 router.get(
   "/:id",
   authMiddleware,
-  idValidator,
   getLeadById
 );
 
 router.put(
   "/:id",
   authMiddleware,
-  idValidator,
+  roleMiddleware(ROLES.ADMIN),
   updateLeadValidator,
+  validate,
   updateLead
 );
 
 router.delete(
   "/:id",
   authMiddleware,
-  idValidator,
+  roleMiddleware(ROLES.ADMIN),
   deleteLead
 );
 
-/* ==========================================================
-   Lead Status
-========================================================== */
-
 router.patch(
-  "/:id/status",
+  "/:id/restore",
   authMiddleware,
-  idValidator,
-  updateLeadStatusValidator,
-  updateLeadStatus
+  roleMiddleware(ROLES.ADMIN),
+  restoreLead
 );
 
-/* ==========================================================
-   Lead Assignment
-========================================================== */
+/**
+ * =====================================================
+ * Lead Assignment
+ * =====================================================
+ */
 
 router.patch(
   "/:id/assign",
   authMiddleware,
-  idValidator,
+  roleMiddleware(ROLES.ADMIN),
   assignLeadValidator,
+  validate,
   assignLead
 );
 
-/* ==========================================================
-   Lead Priority
-========================================================== */
+/**
+ * =====================================================
+ * Lead Status
+ * =====================================================
+ */
 
 router.patch(
-  "/:id/priority",
+  "/:id/status",
   authMiddleware,
-  idValidator,
-  updateLeadPriority
+  updateLeadStatusValidator,
+  validate,
+  updateLeadStatus
 );
 
-/* ==========================================================
-   Lead Follow-up
-========================================================== */
+/**
+ * =====================================================
+ * Lead Notes
+ * =====================================================
+ */
 
-router.patch(
-  "/:id/followup",
+router.post(
+  "/:id/notes",
   authMiddleware,
-  idValidator,
-  updateLeadFollowup
+  addLeadNoteValidator,
+  validate,
+  addLeadNote
+);
+
+router.get(
+  "/:id/notes",
+  authMiddleware,
+  getLeadNotes
+);
+
+/**
+ * =====================================================
+ * Lead Timeline
+ * =====================================================
+ */
+
+router.get(
+  "/:id/timeline",
+  authMiddleware,
+  getLeadTimeline
 );
 
 export default router;

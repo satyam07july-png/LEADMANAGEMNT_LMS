@@ -32,7 +32,7 @@ export const createEmployeeService = async (
     await client.query("BEGIN");
 
     // Duplicate Email
-    const existingEmployee =
+     const existingEmployee =
       await findEmployeeByEmailRepository(employeeData.email);
 
     if (existingEmployee) {

@@ -1,32 +1,23 @@
 import pool from "../config/db.js";
-
 import ApiError from "../utils/ApiError.js";
-import generateCode from "../utils/generateCode.js";
+import auditLogger from "../utils/auditLogger.js";
 
 import {
-  LEAD_STATUS,
-  LEAD_PRIORITY,
-} from "../constants/lead.constants.js";
-
-import {
+  getNextLeadCodeRepository,
   createLeadRepository,
-  getLeadByIdRepository,
-  getAllLeadsRepository,
-  getLastLeadRepository,
-  findLeadByPhoneRepository,
   findLeadByEmailRepository,
-} from "../repositories/leadRepository.js";
-
-import {
+  findLeadByMobileRepository,
+  findLeadByIdRepository,
+  getLeadsRepository,
   updateLeadRepository,
-  softDeleteLeadRepository,
-  updateLeadStatusRepository,
+  deleteLeadRepository,
+  restoreLeadRepository,
 } from "../repositories/leadRepository.js";
 
 import {
+  getLeadStatisticsRepository,
   assignLeadRepository,
-  updateLeadPriorityRepository,
-  updateLeadFollowupRepository,
+  updateLeadStatusRepository,
 } from "../repositories/leadRepository.js";
 
 import {
@@ -34,116 +25,107 @@ import {
 } from "../repositories/employeeRepository.js";
 
 import {
-  getLeadDashboardRepository,
-  getTodayFollowupsRepository,
-  getRecentLeadsRepository,
-  getLeadStatusAnalyticsRepository,
-  getLeadSourceAnalyticsRepository,
-  getLeadPriorityAnalyticsRepository,
-  getCounsellorPerformanceRepository,
+  addLeadNoteRepository,
+  getLeadNotesRepository,
+  addLeadTimelineRepository,
+  getLeadTimelineRepository,
 } from "../repositories/leadRepository.js";
 
 /**
  * =====================================================
- * Create Lead Service
+ * Create Lead
  * =====================================================
  */
-export const createLeadService = async (leadData) => {
+
+export const createLeadService = async (
+  leadData,
+  currentUser,
+  req
+) => {
+
   const client = await pool.connect();
 
   try {
-    const {
-      full_name,
-      phone,
-      email,
-      course_id,
-      source,
-      remarks,
-      next_followup_date,
-      created_by,
-    } = leadData;
 
-    /**
-     * -----------------------------------------
-     * Duplicate Phone Check
-     * -----------------------------------------
-     */
-    const existingPhone =
-      await findLeadByPhoneRepository(phone);
-
-    if (existingPhone) {
-      throw new ApiError(
-        409,
-        "Lead already exists with this phone number."
-      );
-    }
-
-    /**
-     * -----------------------------------------
-     * Duplicate Email Check
-     * -----------------------------------------
-     */
-    if (email) {
-      const existingEmail =
-        await findLeadByEmailRepository(email);
-
-      if (existingEmail) {
-        throw new ApiError(
-          409,
-          "Lead already exists with this email."
-        );
-      }
-    }
-
-    /**
-     * -----------------------------------------
-     * Generate Lead Code
-     * -----------------------------------------
-     */
-    const lastLead =
-      await getLastLeadRepository();
-
-    const leadCode = generateCode(
-      "LEAD",
-      lastLead?.lead_code
-    );
-
-    /**
-     * -----------------------------------------
-     * Database Transaction
-     * -----------------------------------------
-     */
     await client.query("BEGIN");
 
+    /* Duplicate Email */
+
+    if (leadData.email) {
+
+      const existingEmail =
+        await findLeadByEmailRepository(
+          leadData.email
+        );
+
+      if (existingEmail) {
+
+        throw new ApiError(
+          409,
+          "Lead email already exists."
+        );
+
+      }
+
+    }
+
+    /* Duplicate Mobile */
+
+    const existingMobile =
+      await findLeadByMobileRepository(
+        leadData.mobile
+      );
+
+    if (existingMobile) {
+
+      throw new ApiError(
+        409,
+        "Lead mobile already exists."
+      );
+
+    }
+
+    /* Generate Lead Code */
+
+    const sequence =
+      await getNextLeadCodeRepository(client);
+
+    const leadCode =
+      `${process.env.LEAD_CODE_PREFIX || "LEAD"}${String(sequence).padStart(6, "0")}`;
+
+    /* Create Lead */
+
     const lead =
-      await createLeadRepository(client, {
-        lead_code: leadCode,
+      await createLeadRepository(
+        client,
+        {
 
-        full_name,
+          ...leadData,
 
-        phone,
+          lead_code: leadCode,
 
-        email,
+          created_by: currentUser.id,
 
-        course_id,
+        }
+      );
 
-        source,
+    auditLogger({
 
-        status: LEAD_STATUS.NEW,
+      action: "LEAD_CREATED",
 
-        priority: LEAD_PRIORITY.MEDIUM,
+      module: "LEAD",
 
-        assigned_to: null,
+      userId: currentUser.id,
 
-        remarks,
+      role: currentUser.role,
 
-        next_followup_date:
-          next_followup_date || null,
+      entityId: lead.id,
 
-        last_contacted_at: null,
+      requestId: req.requestId,
 
-        created_by,
-      });
+      ip: req.ip,
+
+    });
 
     await client.query("COMMIT");
 
@@ -160,6 +142,7 @@ export const createLeadService = async (leadData) => {
     client.release();
 
   }
+
 };
 
 /**
@@ -167,11 +150,12 @@ export const createLeadService = async (leadData) => {
  * Get All Leads
  * =====================================================
  */
+
 export const getAllLeadsService = async (
   filters
 ) => {
 
-  return await getAllLeadsRepository(
+  return await getLeadsRepository(
     filters
   );
 
@@ -182,12 +166,13 @@ export const getAllLeadsService = async (
  * Get Lead By ID
  * =====================================================
  */
+
 export const getLeadByIdService = async (
   id
 ) => {
 
   const lead =
-    await getLeadByIdRepository(id);
+    await findLeadByIdRepository(id);
 
   if (!lead) {
 
@@ -204,265 +189,108 @@ export const getLeadByIdService = async (
 
 /**
  * =====================================================
- * Update Lead Service
+ * Update Lead
  * =====================================================
  */
+
 export const updateLeadService = async (
   id,
-  leadData
-) => {
-
-  /**
-   * -----------------------------------------
-   * Get Existing Lead
-   * -----------------------------------------
-   */
-  const existingLead =
-    await getLeadByIdRepository(id);
-
-  if (!existingLead) {
-    throw new ApiError(
-      404,
-      "Lead not found."
-    );
-  }
-
-  /**
-   * -----------------------------------------
-   * Duplicate Phone Check
-   * -----------------------------------------
-   */
-  if (
-    leadData.phone &&
-    leadData.phone !== existingLead.phone
-  ) {
-
-    const phoneExists =
-      await findLeadByPhoneRepository(
-        leadData.phone
-      );
-
-    if (phoneExists) {
-      throw new ApiError(
-        409,
-        "Phone number already exists."
-      );
-    }
-
-  }
-
-  /**
-   * -----------------------------------------
-   * Duplicate Email Check
-   * -----------------------------------------
-   */
-  if (
-    leadData.email &&
-    leadData.email !== existingLead.email
-  ) {
-
-    const emailExists =
-      await findLeadByEmailRepository(
-        leadData.email
-      );
-
-    if (emailExists) {
-      throw new ApiError(
-        409,
-        "Email already exists."
-      );
-    }
-
-  }
-
-  /**
-   * -----------------------------------------
-   * Merge Existing + Incoming Data
-   * -----------------------------------------
-   */
-  const updatedLead = {
-
-    full_name:
-      leadData.full_name ??
-      existingLead.full_name,
-
-    phone:
-      leadData.phone ??
-      existingLead.phone,
-
-    email:
-      leadData.email ??
-      existingLead.email,
-
-    course_id:
-      leadData.course_id ??
-      existingLead.course_id,
-
-    source:
-      leadData.source ??
-      existingLead.source,
-
-    status:
-      leadData.status ??
-      existingLead.status,
-
-    priority:
-      leadData.priority ??
-      existingLead.priority,
-
-    assigned_to:
-      leadData.assigned_to ??
-      existingLead.assigned_to,
-
-    remarks:
-      leadData.remarks ??
-      existingLead.remarks,
-
-    next_followup_date:
-      leadData.next_followup_date ??
-      existingLead.next_followup_date,
-
-    last_contacted_at:
-      leadData.last_contacted_at ??
-      existingLead.last_contacted_at,
-
-  };
-
-  return await updateLeadRepository(
-    id,
-    updatedLead
-  );
-
-};
-
-/**
- * =====================================================
- * Delete Lead Service
- * =====================================================
- */
-export const deleteLeadService = async (
-  id
-) => {
-
-  const lead =
-    await getLeadByIdRepository(id);
-
-  if (!lead) {
-
-    throw new ApiError(
-      404,
-      "Lead not found."
-    );
-
-  }
-
-  return await softDeleteLeadRepository(
-    id
-  );
-
-};
-
-/**
- * =====================================================
- * Update Lead Status
- * =====================================================
- */
-export const updateLeadStatusService = async (
-  id,
-  status
-) => {
-
-  const lead =
-    await getLeadByIdRepository(id);
-
-  if (!lead) {
-
-    throw new ApiError(
-      404,
-      "Lead not found."
-    );
-
-  }
-
-  return await updateLeadStatusRepository(
-    id,
-    status
-  );
-
-};
-
-/**
- * =====================================================
- * Assign Lead Service
- * =====================================================
- */
-export const assignLeadService = async (
-  leadId,
-  employeeId
+  leadData,
+  currentUser,
+  req
 ) => {
 
   const client = await pool.connect();
 
   try {
 
-    /**
-     * ------------------------------
-     * Check Lead
-     * ------------------------------
-     */
+    await client.query("BEGIN");
+
     const lead =
-      await getLeadByIdRepository(leadId);
+      await findLeadByIdRepository(id);
 
     if (!lead) {
+
       throw new ApiError(
         404,
         "Lead not found."
       );
+
     }
 
-    /**
-     * ------------------------------
-     * Check Counsellor
-     * ------------------------------
-     */
-   const employee =
-  await findEmployeeByIdRepository(employeeId);
+    /* Duplicate Email */
 
-    if (!employee) {
-      throw new ApiError(
-        404,
-        "Counsellor not found."
-      );
+    if (
+      leadData.email &&
+      leadData.email !== lead.email
+    ) {
+
+      const existingEmail =
+        await findLeadByEmailRepository(
+          leadData.email
+        );
+
+      if (existingEmail) {
+
+        throw new ApiError(
+          409,
+          "Lead email already exists."
+        );
+
+      }
+
     }
 
-    /**
-     * ------------------------------
-     * Prevent Duplicate Assignment
-     * ------------------------------
-     */
-    if (lead.assigned_to === employeeId) {
-      throw new ApiError(
-        409,
-        "Lead is already assigned to this counsellor."
-      );
+    /* Duplicate Mobile */
+
+    if (
+      leadData.mobile &&
+      leadData.mobile !== lead.mobile
+    ) {
+
+      const existingMobile =
+        await findLeadByMobileRepository(
+          leadData.mobile
+        );
+
+      if (existingMobile) {
+
+        throw new ApiError(
+          409,
+          "Lead mobile already exists."
+        );
+
+      }
+
     }
 
-    await client.query("BEGIN");
-
-    /**
-     * Update Lead
-     */
     const updatedLead =
-      await assignLeadRepository(
-        leadId,
-        employeeId
+      await updateLeadRepository(
+        client,
+        id,
+        {
+          ...leadData,
+          updated_by: currentUser.id,
+        }
       );
 
-    /**
-     * Future:
-     * Insert into lead_assignments
-     * Insert Activity Log
-     */
+    auditLogger({
+
+      action: "LEAD_UPDATED",
+
+      module: "LEAD",
+
+      userId: currentUser.id,
+
+      role: currentUser.role,
+
+      entityId: id,
+
+      requestId: req.requestId,
+
+      ip: req.ip,
+
+    });
 
     await client.query("COMMIT");
 
@@ -484,16 +312,437 @@ export const assignLeadService = async (
 
 /**
  * =====================================================
- * Update Lead Priority
+ * Soft Delete Lead
  * =====================================================
  */
-export const updateLeadPriorityService = async (
+
+export const deleteLeadService = async (
   id,
-  priority
+  currentUser,
+  req
+) => {
+
+  const client = await pool.connect();
+
+  try {
+
+    await client.query("BEGIN");
+
+    const lead =
+      await findLeadByIdRepository(id);
+
+    if (!lead) {
+
+      throw new ApiError(
+        404,
+        "Lead not found."
+      );
+
+    }
+
+    const deletedLead =
+      await deleteLeadRepository(
+        client,
+        id,
+        currentUser.id
+      );
+
+    auditLogger({
+
+      action: "LEAD_DELETED",
+
+      module: "LEAD",
+
+      userId: currentUser.id,
+
+      role: currentUser.role,
+
+      entityId: id,
+
+      requestId: req.requestId,
+
+      ip: req.ip,
+
+    });
+
+    await client.query("COMMIT");
+
+    return deletedLead;
+
+  } catch (error) {
+
+    await client.query("ROLLBACK");
+
+    throw error;
+
+  } finally {
+
+    client.release();
+
+  }
+
+};
+
+/**
+ * =====================================================
+ * Restore Lead
+ * =====================================================
+ */
+
+export const restoreLeadService = async (
+  id,
+  currentUser,
+  req
+) => {
+
+  const client = await pool.connect();
+
+  try {
+
+    await client.query("BEGIN");
+
+    const restoredLead =
+      await restoreLeadRepository(
+        client,
+        id,
+        currentUser.id
+      );
+
+    if (!restoredLead) {
+
+      throw new ApiError(
+        404,
+        "Lead not found."
+      );
+
+    }
+
+    auditLogger({
+
+      action: "LEAD_RESTORED",
+
+      module: "LEAD",
+
+      userId: currentUser.id,
+
+      role: currentUser.role,
+
+      entityId: id,
+
+      requestId: req.requestId,
+
+      ip: req.ip,
+
+    });
+
+    await client.query("COMMIT");
+
+    return restoredLead;
+
+  } catch (error) {
+
+    await client.query("ROLLBACK");
+
+    throw error;
+
+  } finally {
+
+    client.release();
+
+  }
+
+};
+
+/**
+ * =====================================================
+ * Lead Statistics
+ * =====================================================
+ */
+
+export const getLeadStatisticsService = async () => {
+
+  return await getLeadStatisticsRepository();
+
+};
+
+/**
+ * =====================================================
+ * Assign Lead
+ * =====================================================
+ */
+
+export const assignLeadService = async (
+  leadId,
+  employeeId,
+  currentUser,
+  req
+) => {
+
+  const client = await pool.connect();
+
+  try {
+
+    await client.query("BEGIN");
+
+    const lead =
+      await findLeadByIdRepository(leadId);
+
+    if (!lead) {
+
+      throw new ApiError(
+        404,
+        "Lead not found."
+      );
+
+    }
+
+    const employee =
+      await findEmployeeByIdRepository(employeeId);
+
+    if (!employee) {
+
+      throw new ApiError(
+        404,
+        "Employee not found."
+      );
+
+    }
+
+    const updatedLead =
+      await assignLeadRepository(
+
+        client,
+
+        leadId,
+
+        employeeId,
+
+        currentUser.id
+
+      );
+
+    auditLogger({
+
+      action: "LEAD_ASSIGNED",
+
+      module: "LEAD",
+
+      userId: currentUser.id,
+
+      role: currentUser.role,
+
+      entityId: leadId,
+
+      requestId: req.requestId,
+
+      ip: req.ip,
+
+    });
+
+    await client.query("COMMIT");
+
+    return updatedLead;
+
+  } catch (error) {
+
+    await client.query("ROLLBACK");
+
+    throw error;
+
+  } finally {
+
+    client.release();
+
+  }
+
+};
+
+/**
+ * =====================================================
+ * Update Lead Status
+ * =====================================================
+ */
+
+export const updateLeadStatusService = async (
+  leadId,
+  status,
+  currentUser,
+  req
+) => {
+
+  const client = await pool.connect();
+
+  try {
+
+    await client.query("BEGIN");
+
+    const lead =
+      await findLeadByIdRepository(leadId);
+
+    if (!lead) {
+
+      throw new ApiError(
+        404,
+        "Lead not found."
+      );
+
+    }
+
+    const updatedLead =
+      await updateLeadStatusRepository(
+
+        client,
+
+        leadId,
+
+        status,
+
+        currentUser.id
+
+      );
+
+    auditLogger({
+
+      action: "LEAD_STATUS_UPDATED",
+
+      module: "LEAD",
+
+      userId: currentUser.id,
+
+      role: currentUser.role,
+
+      entityId: leadId,
+
+      requestId: req.requestId,
+
+      ip: req.ip,
+
+    });
+
+    await client.query("COMMIT");
+
+    return updatedLead;
+
+  } catch (error) {
+
+    await client.query("ROLLBACK");
+
+    throw error;
+
+  } finally {
+
+    client.release();
+
+  }
+
+};
+
+/**
+ * =====================================================
+ * Add Lead Note
+ * =====================================================
+ */
+
+export const addLeadNoteService = async (
+  leadId,
+  note,
+  currentUser,
+  req
+) => {
+
+  const client = await pool.connect();
+
+  try {
+
+    await client.query("BEGIN");
+
+    const lead =
+      await findLeadByIdRepository(leadId);
+
+    if (!lead) {
+
+      throw new ApiError(
+        404,
+        "Lead not found."
+      );
+
+    }
+
+    const newNote =
+      await addLeadNoteRepository(
+
+        client,
+
+        leadId,
+
+        note,
+
+        currentUser.id
+
+      );
+
+    await addLeadTimelineRepository(
+
+      client,
+
+      leadId,
+
+      "NOTE_ADDED",
+
+      note,
+
+      currentUser.id
+
+    );
+
+    auditLogger({
+
+      action: "LEAD_NOTE_ADDED",
+
+      module: "LEAD",
+
+      userId: currentUser.id,
+
+      role: currentUser.role,
+
+      entityId: leadId,
+
+      requestId: req.requestId,
+
+      ip: req.ip,
+
+    });
+
+    await client.query("COMMIT");
+
+    return newNote;
+
+  } catch (error) {
+
+    await client.query("ROLLBACK");
+
+    throw error;
+
+  } finally {
+
+    client.release();
+
+  }
+
+};
+
+/**
+ * =====================================================
+ * Get Lead Notes
+ * =====================================================
+ */
+
+export const getLeadNotesService = async (
+  leadId
 ) => {
 
   const lead =
-    await getLeadByIdRepository(id);
+    await findLeadByIdRepository(leadId);
 
   if (!lead) {
 
@@ -504,25 +753,26 @@ export const updateLeadPriorityService = async (
 
   }
 
-  return await updateLeadPriorityRepository(
-    id,
-    priority
+  return await getLeadNotesRepository(
+    leadId
   );
 
 };
 
 /**
  * =====================================================
- * Update Lead Follow-up
+ * Get Lead Timeline
  * =====================================================
  */
-export const updateLeadFollowupService = async (
-  id,
-  followupData
+
+export const getLeadTimelineService = async (
+  leadId
 ) => {
 
   const lead =
-    await getLeadByIdRepository(id);
+    await findLeadByIdRepository(
+      leadId
+    );
 
   if (!lead) {
 
@@ -533,95 +783,8 @@ export const updateLeadFollowupService = async (
 
   }
 
-  return await updateLeadFollowupRepository(
-
-    id,
-
-    followupData.next_followup_date,
-
-    followupData.last_contacted_at
-
+  return await getLeadTimelineRepository(
+    leadId
   );
-
-};
-
-/**
- * =====================================================
- * Get Dashboard Service
- * =====================================================
- */
-export const getDashboardService = async () => {
-
-  const dashboard =
-    await getLeadDashboardRepository();
-
-  return dashboard;
-
-};
-
-/**
- * =====================================================
- * Get Today's Followups
- * =====================================================
- */
-export const getTodayFollowupsService = async () => {
-
-  return await getTodayFollowupsRepository();
-
-};
-
-/**
- * =====================================================
- * Get Recent Leads
- * =====================================================
- */
-export const getRecentLeadsService = async (
-  limit = 10
-) => {
-
-  return await getRecentLeadsRepository(limit);
-
-};
-
-/**
- * =====================================================
- * Get Lead Analytics
- * =====================================================
- */
-export const getLeadAnalyticsService = async () => {
-
-  const [
-
-    status,
-
-    source,
-
-    priority,
-
-    counsellors,
-
-  ] = await Promise.all([
-
-    getLeadStatusAnalyticsRepository(),
-
-    getLeadSourceAnalyticsRepository(),
-
-    getLeadPriorityAnalyticsRepository(),
-
-    getCounsellorPerformanceRepository(),
-
-  ]);
-
-  return {
-
-    status,
-
-    source,
-
-    priority,
-
-    counsellors,
-
-  };
 
 };

@@ -1,6 +1,5 @@
 import asyncHandler from "../utils/asyncHandler.js";
 import ApiResponse from "../utils/ApiResponse.js";
-import { HTTP_STATUS } from "../constants/httpStatus.js";
 
 import {
   createLeadService,
@@ -8,14 +7,13 @@ import {
   getLeadByIdService,
   updateLeadService,
   deleteLeadService,
-  updateLeadStatusService,
+  restoreLeadService,
+  getLeadStatisticsService,
   assignLeadService,
-  updateLeadPriorityService,
-  updateLeadFollowupService,
-  getDashboardService,
-  getTodayFollowupsService,
-  getRecentLeadsService,
-  getLeadAnalyticsService,
+  updateLeadStatusService,
+  addLeadNoteService,
+  getLeadNotesService,
+  getLeadTimelineService,
 } from "../services/leadService.js";
 
 /**
@@ -23,19 +21,23 @@ import {
  * Create Lead
  * =====================================================
  */
-export const createLead = asyncHandler(async (req, res) => {
-  const lead = await createLeadService({
-    ...req.body,
-    created_by: req.user?.id,
-  });
 
-  return res.status(HTTP_STATUS.CREATED).json(
+export const createLead = asyncHandler(async (req, res) => {
+
+  const lead = await createLeadService(
+    req.body,
+    req.user,
+    req
+  );
+
+  return res.status(201).json(
     new ApiResponse(
-      HTTP_STATUS.CREATED,
+      201,
       lead,
       "Lead created successfully."
     )
   );
+
 });
 
 /**
@@ -43,16 +45,21 @@ export const createLead = asyncHandler(async (req, res) => {
  * Get All Leads
  * =====================================================
  */
-export const getAllLeads = asyncHandler(async (req, res) => {
-  const leads = await getAllLeadsService(req.query);
 
-  return res.status(HTTP_STATUS.OK).json(
+export const getAllLeads = asyncHandler(async (req, res) => {
+
+  const leads = await getAllLeadsService(
+    req.query
+  );
+
+  return res.status(200).json(
     new ApiResponse(
-      HTTP_STATUS.OK,
+      200,
       leads,
       "Leads fetched successfully."
     )
   );
+
 });
 
 /**
@@ -60,16 +67,21 @@ export const getAllLeads = asyncHandler(async (req, res) => {
  * Get Lead By ID
  * =====================================================
  */
-export const getLeadById = asyncHandler(async (req, res) => {
-  const lead = await getLeadByIdService(req.params.id);
 
-  return res.status(HTTP_STATUS.OK).json(
+export const getLeadById = asyncHandler(async (req, res) => {
+
+  const lead = await getLeadByIdService(
+    req.params.id
+  );
+
+  return res.status(200).json(
     new ApiResponse(
-      HTTP_STATUS.OK,
+      200,
       lead,
       "Lead fetched successfully."
     )
   );
+
 });
 
 /**
@@ -77,56 +89,130 @@ export const getLeadById = asyncHandler(async (req, res) => {
  * Update Lead
  * =====================================================
  */
+
 export const updateLead = asyncHandler(async (req, res) => {
+
   const lead = await updateLeadService(
+
     req.params.id,
-    req.body
+
+    req.body,
+
+    req.user,
+
+    req
+
   );
 
-  return res.status(HTTP_STATUS.OK).json(
+  return res.status(200).json(
+
     new ApiResponse(
-      HTTP_STATUS.OK,
+
+      200,
+
       lead,
+
       "Lead updated successfully."
+
     )
+
   );
+
 });
 
 /**
  * =====================================================
- * Delete Lead
+ * Soft Delete Lead
  * =====================================================
  */
+
 export const deleteLead = asyncHandler(async (req, res) => {
-  const lead = await deleteLeadService(req.params.id);
 
-  return res.status(HTTP_STATUS.OK).json(
-    new ApiResponse(
-      HTTP_STATUS.OK,
-      lead,
-      "Lead deleted successfully."
-    )
+  const lead = await deleteLeadService(
+
+    req.params.id,
+
+    req.user,
+
+    req
+
   );
+
+  return res.status(200).json(
+
+    new ApiResponse(
+
+      200,
+
+      lead,
+
+      "Lead deleted successfully."
+
+    )
+
+  );
+
 });
 
 /**
  * =====================================================
- * Update Lead Status
+ * Restore Lead
  * =====================================================
  */
-export const updateLeadStatus = asyncHandler(async (req, res) => {
-  const lead = await updateLeadStatusService(
+
+export const restoreLead = asyncHandler(async (req, res) => {
+
+  const lead = await restoreLeadService(
+
     req.params.id,
-    req.body.status
+
+    req.user,
+
+    req
+
   );
 
-  return res.status(HTTP_STATUS.OK).json(
+  return res.status(200).json(
+
     new ApiResponse(
-      HTTP_STATUS.OK,
+
+      200,
+
       lead,
-      "Lead status updated successfully."
+
+      "Lead restored successfully."
+
     )
+
   );
+
+});
+
+/**
+ * =====================================================
+ * Lead Statistics
+ * =====================================================
+ */
+
+export const getLeadStatistics = asyncHandler(async (req, res) => {
+
+  const statistics =
+    await getLeadStatisticsService();
+
+  return res.status(200).json(
+
+    new ApiResponse(
+
+      200,
+
+      statistics,
+
+      "Lead statistics fetched successfully."
+
+    )
+
+  );
+
 });
 
 /**
@@ -134,130 +220,165 @@ export const updateLeadStatus = asyncHandler(async (req, res) => {
  * Assign Lead
  * =====================================================
  */
+
 export const assignLead = asyncHandler(async (req, res) => {
+
   const lead = await assignLeadService(
+
     req.params.id,
-    req.body.employee_id
+
+    req.body.employee_id,
+
+    req.user,
+
+    req
+
   );
 
-  return res.status(HTTP_STATUS.OK).json(
+  return res.status(200).json(
+
     new ApiResponse(
-      HTTP_STATUS.OK,
+
+      200,
+
       lead,
+
       "Lead assigned successfully."
+
     )
+
   );
+
 });
 
 /**
  * =====================================================
- * Update Lead Priority
+ * Update Lead Status
  * =====================================================
  */
-export const updateLeadPriority = asyncHandler(async (req, res) => {
-  const lead = await updateLeadPriorityService(
+
+export const updateLeadStatus = asyncHandler(async (req, res) => {
+
+  const lead = await updateLeadStatusService(
+
     req.params.id,
-    req.body.priority
+
+    req.body.status,
+
+    req.user,
+
+    req
+
   );
 
-  return res.status(HTTP_STATUS.OK).json(
+  return res.status(200).json(
+
     new ApiResponse(
-      HTTP_STATUS.OK,
+
+      200,
+
       lead,
-      "Lead priority updated successfully."
+
+      "Lead status updated successfully."
+
     )
+
   );
+
 });
 
 /**
  * =====================================================
- * Update Lead Follow-up
+ * Add Lead Note
  * =====================================================
  */
-export const updateLeadFollowup = asyncHandler(async (req, res) => {
-  const lead = await updateLeadFollowupService(
+
+export const addLeadNote = asyncHandler(async (req, res) => {
+
+  const note = await addLeadNoteService(
+
     req.params.id,
-    req.body
+
+    req.body.note,
+
+    req.user,
+
+    req
+
   );
 
-  return res.status(HTTP_STATUS.OK).json(
+  return res.status(201).json(
+
     new ApiResponse(
-      HTTP_STATUS.OK,
-      lead,
-      "Lead follow-up updated successfully."
+
+      201,
+
+      note,
+
+      "Lead note added successfully."
+
     )
+
   );
+
 });
 
 /**
  * =====================================================
- * Dashboard
+ * Get Lead Notes
  * =====================================================
  */
-export const getDashboard = asyncHandler(async (req, res) => {
-  const dashboard = await getDashboardService();
 
-  return res.status(HTTP_STATUS.OK).json(
-    new ApiResponse(
-      HTTP_STATUS.OK,
-      dashboard,
-      "Dashboard fetched successfully."
-    )
+export const getLeadNotes = asyncHandler(async (req, res) => {
+
+  const notes = await getLeadNotesService(
+
+    req.params.id
+
   );
+
+  return res.status(200).json(
+
+    new ApiResponse(
+
+      200,
+
+      notes,
+
+      "Lead notes fetched successfully."
+
+    )
+
+  );
+
 });
 
 /**
  * =====================================================
- * Today's Follow-ups
+ * Get Lead Timeline
  * =====================================================
  */
-export const getTodayFollowups = asyncHandler(async (req, res) => {
-  const followups =
-    await getTodayFollowupsService();
 
-  return res.status(HTTP_STATUS.OK).json(
-    new ApiResponse(
-      HTTP_STATUS.OK,
-      followups,
-      "Today's follow-ups fetched successfully."
-    )
+export const getLeadTimeline = asyncHandler(async (req, res) => {
+
+  const timeline = await getLeadTimelineService(
+
+    req.params.id
+
   );
-});
 
-/**
- * =====================================================
- * Recent Leads
- * =====================================================
- */
-export const getRecentLeads = asyncHandler(async (req, res) => {
-  const leads =
-    await getRecentLeadsService(
-      req.query.limit
-    );
+  return res.status(200).json(
 
-  return res.status(HTTP_STATUS.OK).json(
     new ApiResponse(
-      HTTP_STATUS.OK,
-      leads,
-      "Recent leads fetched successfully."
-    )
-  );
-});
 
-/**
- * =====================================================
- * Lead Analytics
- * =====================================================
- */
-export const getLeadAnalytics = asyncHandler(async (req, res) => {
-  const analytics =
-    await getLeadAnalyticsService();
+      200,
 
-  return res.status(HTTP_STATUS.OK).json(
-    new ApiResponse(
-      HTTP_STATUS.OK,
-      analytics,
-      "Lead analytics fetched successfully."
+      timeline,
+
+      "Lead timeline fetched successfully."
+
     )
+
   );
+
 });

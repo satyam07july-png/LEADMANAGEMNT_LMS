@@ -1,237 +1,132 @@
-import { body, param, query, validationResult } from "express-validator";
+import { body, param } from "express-validator";
 
-import {
-  LEAD_STATUS,
-  LEAD_SOURCE,
-  LEAD_PRIORITY,
-} from "../constants/lead.constants.js";
-
-/**
- * =====================================================
- * Validation Result
- * =====================================================
- */
-export const validate = (req, res, next) => {
-  const errors = validationResult(req);
-
-  if (!errors.isEmpty()) {
-    return res.status(400).json({
-      success: false,
-      statusCode: 400,
-      message: "Validation failed",
-      errors: errors.array(),
-    });
-  }
-
-  next();
-};
-
-/**
- * =====================================================
- * ID Validator
- * =====================================================
- */
-export const idValidator = [
-  param("id")
-    .isInt({ min: 1 })
-    .withMessage("Invalid Lead ID"),
-
-  validate,
-];
-
-/**
- * =====================================================
- * Create Lead Validator
- * =====================================================
- */
 export const createLeadValidator = [
 
   body("full_name")
     .trim()
     .notEmpty()
-    .withMessage("Full name is required")
-    .isLength({ min: 3, max: 150 })
-    .withMessage("Full name must be between 3 and 150 characters"),
-
-  body("phone")
-    .trim()
-    .matches(/^[6-9]\d{9}$/)
-    .withMessage("Invalid mobile number"),
+    .withMessage("Full name is required.")
+    .isLength({ min: 3, max: 150 }),
 
   body("email")
-    .optional({ nullable: true })
+    .optional()
     .isEmail()
-    .withMessage("Invalid email"),
+    .withMessage("Invalid email."),
+
+  body("mobile")
+    .trim()
+    .notEmpty()
+    .withMessage("Mobile is required.")
+    .isLength({ min: 10, max: 15 }),
 
   body("course_id")
-    .optional({ nullable: true })
-    .isInt({ min: 1 })
-    .withMessage("Invalid course"),
+    .optional()
+    .isInt()
+    .withMessage("Invalid course."),
+
+  body("assigned_to")
+    .optional()
+    .isInt()
+    .withMessage("Invalid employee."),
 
   body("source")
-    .isIn(Object.values(LEAD_SOURCE))
-    .withMessage("Invalid lead source"),
+    .notEmpty()
+    .withMessage("Lead source is required."),
 
-  body("remarks")
+  body("status")
     .optional()
-    .trim()
-    .isLength({ max: 1000 })
-    .withMessage("Remarks cannot exceed 1000 characters"),
+    .isIn([
+      "NEW",
+      "CONTACTED",
+      "FOLLOW_UP",
+      "QUALIFIED",
+      "ADMISSION_DONE",
+      "LOST",
+    ]),
 
-  body("next_followup_date")
+  body("priority")
     .optional()
-    .isISO8601()
-    .withMessage("Invalid follow-up date"),
+    .isIn([
+      "LOW",
+      "MEDIUM",
+      "HIGH",
+    ]),
 
-  validate,
 ];
 
-/**
- * =====================================================
- * Update Lead Validator
- * =====================================================
- */
 export const updateLeadValidator = [
+
+  param("id")
+    .isInt()
+    .withMessage("Invalid lead id."),
 
   body("full_name")
     .optional()
-    .trim()
     .isLength({ min: 3, max: 150 }),
-
-  body("phone")
-    .optional()
-    .matches(/^[6-9]\d{9}$/)
-    .withMessage("Invalid mobile number"),
 
   body("email")
     .optional()
-    .isEmail()
-    .withMessage("Invalid email"),
+    .isEmail(),
 
-  body("course_id")
+  body("mobile")
     .optional()
-    .isInt({ min: 1 }),
-
-  body("source")
-    .optional()
-    .isIn(Object.values(LEAD_SOURCE))
-    .withMessage("Invalid lead source"),
+    .isLength({ min: 10, max: 15 }),
 
   body("status")
     .optional()
-    .isIn(Object.values(LEAD_STATUS))
-    .withMessage("Invalid lead status"),
+    .isIn([
+      "NEW",
+      "CONTACTED",
+      "FOLLOW_UP",
+      "QUALIFIED",
+      "ADMISSION_DONE",
+      "LOST",
+    ]),
 
-  body("priority")
-    .optional()
-    .isIn(Object.values(LEAD_PRIORITY))
-    .withMessage("Invalid priority"),
-
-  body("remarks")
-    .optional()
-    .isLength({ max: 1000 }),
-
-  body("next_followup_date")
-    .optional()
-    .isISO8601()
-    .withMessage("Invalid follow-up date"),
-
-  validate,
 ];
 
-/**
- * =====================================================
- * Update Status
- * =====================================================
- */
-export const updateLeadStatusValidator = [
-
-  body("status")
-    .notEmpty()
-    .withMessage("Status is required")
-    .isIn(Object.values(LEAD_STATUS))
-    .withMessage("Invalid lead status"),
-
-  validate,
-];
-
-/**
- * =====================================================
- * Assign Lead
- * =====================================================
- */
 export const assignLeadValidator = [
 
+  param("id")
+    .isInt()
+    .withMessage("Invalid lead id."),
+
   body("employee_id")
-    .isInt({ min: 1 })
-    .withMessage("Valid employee_id is required"),
+    .isInt()
+    .withMessage("Employee id is required."),
 
-  validate,
 ];
 
-/**
- * =====================================================
- * Update Priority
- * =====================================================
- */
-export const updateLeadPriorityValidator = [
+export const updateLeadStatusValidator = [
 
-  body("priority")
+  param("id")
+    .isInt(),
+
+  body("status")
+    .isIn([
+      "NEW",
+      "CONTACTED",
+      "FOLLOW_UP",
+      "QUALIFIED",
+      "ADMISSION_DONE",
+      "LOST",
+    ])
+    .withMessage("Invalid lead status."),
+
+];
+
+export const addLeadNoteValidator = [
+
+  param("id")
+    .isInt(),
+
+  body("note")
+    .trim()
     .notEmpty()
-    .withMessage("Priority is required")
-    .isIn(Object.values(LEAD_PRIORITY))
-    .withMessage("Invalid priority"),
+    .withMessage("Note is required.")
+    .isLength({
+      min: 3,
+      max: 1000,
+    }),
 
-  validate,
-];
-
-/**
- * =====================================================
- * Update Follow-up
- * =====================================================
- */
-export const updateLeadFollowupValidator = [
-
-  body("next_followup_date")
-    .notEmpty()
-    .withMessage("Follow-up date is required")
-    .isISO8601()
-    .withMessage("Invalid follow-up date"),
-
-  body("last_contacted_at")
-    .optional()
-    .isISO8601()
-    .withMessage("Invalid last contacted date"),
-
-  validate,
-];
-
-/**
- * =====================================================
- * Lead List Query Validator
- * =====================================================
- */
-export const leadQueryValidator = [
-
-  query("page")
-    .optional()
-    .isInt({ min: 1 }),
-
-  query("limit")
-    .optional()
-    .isInt({ min: 1, max: 100 }),
-
-  query("status")
-    .optional()
-    .isIn(Object.values(LEAD_STATUS)),
-
-  query("priority")
-    .optional()
-    .isIn(Object.values(LEAD_PRIORITY)),
-
-  query("source")
-    .optional()
-    .isIn(Object.values(LEAD_SOURCE)),
-
-  validate,
 ];

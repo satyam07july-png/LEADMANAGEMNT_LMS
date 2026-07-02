@@ -9,11 +9,13 @@ import validateEnv from "./config/env.js";
 
 /* Routes */
 import authRoutes from "./routes/authRoutes.js";
-import courseRoutes from "./routes/courseRoutes.js";
+import campaignRoutes from "./routes/campaignRoutes.js";
 import departmentRoutes from "./routes/departmentRoutes.js";
 import employeeRoutes from "./routes/employeeRoutes.js";
 import leadRoutes from "./routes/leadRoutes.js";
 import healthRoutes from "./routes/health.routes.js";
+import leadCaptureRoutes from "./routes/leadCaptureRoutes.js";
+import dashboardRoutes from "./routes/dashboardRoutes.js";
 
 /* Middlewares */
 import { globalLimiter } from "./middleware/rateLimiter.js";
@@ -103,13 +105,20 @@ app.use("/api", healthRoutes);
  */
 app.use("/api/auth", authRoutes);
 
-app.use("/api/courses", courseRoutes);
+app.use("/api/campaigns", campaignRoutes);
 
 app.use("/api/departments", departmentRoutes);
 
 app.use("/api/employees", employeeRoutes);
 
 app.use("/api/leads", leadRoutes);
+
+app.use(
+  "/api/public",
+  leadCaptureRoutes
+);
+
+app.use("/api/dashboard", dashboardRoutes);
 
 /**
  * =====================================================
