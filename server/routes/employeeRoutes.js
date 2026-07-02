@@ -1,34 +1,71 @@
 import express from "express";
 
+import authMiddleware from "../middleware/authMiddleware.js";
+import roleMiddleware from "../middleware/roleMiddleware.js";
+import validate from "../middleware/validate.js";
+
+import ROLES from "../constants/roles.js";
+
+import { createEmployeeValidator } from "../validators/employee.validator.js";
+
 import {
   createEmployee,
   getAllEmployees,
   getEmployeeById,
   updateEmployee,
   deleteEmployee,
+  restoreEmployee,
+  getEmployeeStatistics,
 } from "../controllers/employeeController.js";
 
 const router = express.Router();
 
-/**
- * ============================================
- * Employee (Counsellor) Routes
- * ============================================
- */
+router.post(
+  "/",
+  authMiddleware,
+  roleMiddleware(ROLES.ADMIN),
+  createEmployeeValidator,
+  validate,
+  createEmployee
+);
 
-// Create Counsellor
-router.post("/", createEmployee);
+router.get(
+  "/",
+  authMiddleware,
+  getAllEmployees
+);
 
-// Get All Counsellors
-router.get("/", getAllEmployees);
+router.get(
+    "/statistics",
+    authMiddleware,
+    getEmployeeStatistics
+);
 
-// Get Counsellor By ID
-router.get("/:id", getEmployeeById);
+router.get(
+  "/:id",
+  authMiddleware,
+  getEmployeeById
+);
 
-// Update Counsellor
-router.put("/:id", updateEmployee);
+router.put(
+  "/:id",
+  authMiddleware,
+  roleMiddleware(ROLES.ADMIN),
+  updateEmployee
+);
 
-// Deactivate Counsellor
-router.delete("/:id", deleteEmployee);
+router.delete(
+  "/:id",
+  authMiddleware,
+  roleMiddleware(ROLES.ADMIN),
+  deleteEmployee
+);
+
+router.patch(
+  "/:id/restore",
+  authMiddleware,
+  roleMiddleware(ROLES.ADMIN),
+  restoreEmployee
+);
 
 export default router;

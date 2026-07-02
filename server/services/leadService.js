@@ -30,7 +30,7 @@ import {
 } from "../repositories/leadRepository.js";
 
 import {
-  getEmployeeByIdRepository,
+  findEmployeeByIdRepository,
 } from "../repositories/employeeRepository.js";
 
 import {
@@ -425,10 +425,8 @@ export const assignLeadService = async (
      * Check Counsellor
      * ------------------------------
      */
-    const employee =
-      await getEmployeeByIdRepository(
-        employeeId
-      );
+   const employee =
+  await findEmployeeByIdRepository(employeeId);
 
     if (!employee) {
       throw new ApiError(

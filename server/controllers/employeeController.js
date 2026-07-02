@@ -1,110 +1,144 @@
+import asyncHandler from "../utils/asyncHandler.js";
+import ApiResponse from "../utils/ApiResponse.js";
+
 import {
   createEmployeeService,
   getAllEmployeesService,
   getEmployeeByIdService,
   updateEmployeeService,
   deleteEmployeeService,
+  restoreEmployeeService,
+  getEmployeeStatisticsService,
 } from "../services/employeeService.js";
 
-/**
- * Create Employee
- */
-export const createEmployee = async (req, res) => {
-  try {
-    const employee = await createEmployeeService(req.body);
+export const createEmployee = asyncHandler(async (req, res) => {
 
-    return res.status(201).json({
-      success: true,
-      message: "Counsellor created successfully",
-      data: employee,
-    });
-  } catch (error) {
-    return res.status(400).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-
-/**
- * Get All Employees
- */
-export const getAllEmployees = async (req, res) => {
-  try {
-    const employees = await getAllEmployeesService();
-
-    return res.status(200).json({
-      success: true,
-      message: "Counsellors fetched successfully",
-      data: employees,
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-
-/**
- * Get Employee By ID
- */
-export const getEmployeeById = async (req, res) => {
-  try {
-    const employee = await getEmployeeByIdService(req.params.id);
-
-    return res.status(200).json({
-      success: true,
-      message: "Counsellor fetched successfully",
-      data: employee,
-    });
-  } catch (error) {
-    return res.status(404).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-
-/**
- * Update Employee
- */
-export const updateEmployee = async (req, res) => {
-  try {
-    const employee = await updateEmployeeService(
-      req.params.id,
-      req.body
+  const employee =
+    await createEmployeeService(
+      req.body,
+      req.user,
+      req
     );
 
-    return res.status(200).json({
-      success: true,
-      message: "Counsellor updated successfully",
-      data: employee,
-    });
-  } catch (error) {
-    return res.status(400).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+  return res.status(201).json(
+    new ApiResponse(
+      201,
+      employee,
+      "Employee created successfully."
+    )
+  );
+
+});
+
+export const getAllEmployees = asyncHandler(async (req, res) => {
+
+  const employees =
+    await getAllEmployeesService(req.query);
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      employees,
+      "Employees fetched successfully."
+    )
+  );
+
+});
+
+export const getEmployeeById = asyncHandler(async (req, res) => {
+
+  const employee =
+    await getEmployeeByIdService(req.params.id);
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      employee,
+      "Employee fetched successfully."
+    )
+  );
+
+});
 
 /**
- * Delete Employee
+ * =====================================================
+ * Update Employee
+ * =====================================================
  */
-export const deleteEmployee = async (req, res) => {
-  try {
-    const employee = await deleteEmployeeService(req.params.id);
 
-    return res.status(200).json({
-      success: true,
-      message: "Counsellor deactivated successfully",
-      data: employee,
-    });
-  } catch (error) {
-    return res.status(400).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+export const updateEmployee = asyncHandler(async (req, res) => {
+
+  const employee = await updateEmployeeService(
+    req.params.id,
+    req.body,
+    req.user,
+    req
+  );
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      employee,
+      "Employee updated successfully."
+    )
+  );
+
+});
+
+export const deleteEmployee = asyncHandler(async (req, res) => {
+
+  const employee =
+    await deleteEmployeeService(
+      req.params.id,
+      req.user,
+      req
+    );
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      employee,
+      "Employee deleted successfully."
+    )
+  );
+
+});
+
+export const restoreEmployee = asyncHandler(async (req, res) => {
+
+  const employee = await restoreEmployeeService(
+    req.params.id,
+    req.user,
+    req
+  );
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      employee,
+      "Employee restored successfully."
+    )
+  );
+
+});
+
+export const getEmployeeStatistics = asyncHandler(async (req,res)=>{
+
+    const statistics =
+    await getEmployeeStatisticsService();
+
+    return res.status(200).json(
+
+        new ApiResponse(
+
+            200,
+
+            statistics,
+
+            "Employee statistics fetched successfully."
+
+        )
+
+    );
+
+});
