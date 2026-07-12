@@ -209,3 +209,65 @@ export const getRecentActivitiesRepository = async () => {
   return result.rows;
 
 };
+
+/**
+ * =====================================================
+ * Lead Analytics
+ * =====================================================
+ */
+
+/**
+ * =====================================================
+ * Lead Analytics
+ * =====================================================
+ */
+
+export const getLeadAnalyticsRepository = async () => {
+
+    const query = `
+
+        SELECT
+
+            COUNT(*) FILTER (
+                WHERE status = 'NEW'
+                AND is_deleted = FALSE
+            ) AS new_leads,
+
+            COUNT(*) FILTER (
+                WHERE status = 'CONTACTED'
+                AND is_deleted = FALSE
+            ) AS contacted,
+
+            COUNT(*) FILTER (
+                WHERE status = 'QUALIFIED'
+                AND is_deleted = FALSE
+            ) AS qualified,
+
+            COUNT(*) FILTER (
+                WHERE status = 'FOLLOW_UP'
+                AND is_deleted = FALSE
+            ) AS follow_up,
+
+            COUNT(*) FILTER (
+                WHERE status = 'ADMISSION'
+                AND is_deleted = FALSE
+            ) AS admissions,
+
+            COUNT(*) FILTER (
+                WHERE status = 'LOST'
+                AND is_deleted = FALSE
+            ) AS lost,
+
+            COUNT(*) FILTER (
+                WHERE is_deleted = FALSE
+            ) AS total
+
+        FROM leads;
+
+    `;
+
+    const { rows } = await pool.query(query);
+
+    return rows[0];
+
+};

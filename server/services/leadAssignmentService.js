@@ -3,16 +3,21 @@ import pool from "../config/db.js";
 import ApiError from "../utils/ApiError.js";
 
 import {
-  getLeadByIdRepository,
+  findLeadByIdRepository,
   assignLeadRepository,
 } from "../repositories/leadRepository.js";
 
 import {
-  getEmployeeByIdRepository,
+  findEmployeeByIdRepository,
 } from "../repositories/employeeRepository.js";
 
 import {
   createAssignmentHistoryRepository,
+} from "../repositories/leadAssignmentRepository.js";
+
+import {
+  getLeadAssignmentsRepository,
+  getAssignmentCountRepository,
 } from "../repositories/leadAssignmentRepository.js";
 
 /**
@@ -34,7 +39,7 @@ export const assignLeadService = async (
     /* ================================
        Check Lead
     ================================= */
-    const lead = await getLeadByIdRepository(leadId);
+    const lead = await findLeadByIdRepository(leadId);
 
     if (!lead) {
       throw new ApiError(
@@ -46,8 +51,7 @@ export const assignLeadService = async (
     /* ================================
        Check Employee
     ================================= */
-    const employee =
-      await getEmployeeByIdRepository(employeeId);
+    const employee = await findEmployeeByIdRepository(employeeId);
 
     if (!employee) {
       throw new ApiError(
@@ -110,5 +114,67 @@ export const assignLeadService = async (
     client.release();
 
   }
+
+};
+
+export const getLeadAssignmentHistoryService = async (
+  leadId,
+  page = 1,
+  limit = 20
+) => {
+
+  const assignments =
+    await getLeadAssignmentsRepository(
+      leadId,
+      page,
+      limit
+    );
+
+  const totalRecords =
+    await getAssignmentCountRepository(
+      leadId
+    );
+
+  return {
+
+    assignments,
+
+    pagination: {
+
+      page: Number(page),
+
+      limit: Number(limit),
+
+      totalRecords,
+
+      totalPages: Math.ceil(
+        totalRecords / limit
+      ),
+
+    },
+
+  };
+
+};
+
+/**
+ * =====================================================
+ * Reassign Lead Service
+ * =====================================================
+ */
+export const reassignLeadService = async (
+  leadId,
+  employeeId,
+  assignedBy,
+  remarks = null
+) => {
+
+  // Existing assign service ko reuse karo
+  return await assignLeadService(
+    leadId,
+    employeeId,
+    assignedBy,
+    remarks
+  );
 
 };

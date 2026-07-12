@@ -30,7 +30,7 @@ export const createLeadRepository = async (
       full_name,
       email,
       mobile,
-      course_id,
+      campaign_id,
       assigned_to,
       source,
       status,
@@ -56,7 +56,7 @@ export const createLeadRepository = async (
     lead.full_name,
     lead.email,
     lead.mobile,
-    lead.course_id,
+    lead.campaign_id,
     lead.assigned_to,
     lead.source,
     lead.status,
@@ -158,7 +158,6 @@ export const findLeadByMobileRepository = async (
  * Search + Filter + Pagination + Sorting
  * =====================================================
  */
-
 export const getLeadsRepository = async (filters) => {
 
   const {
@@ -173,205 +172,170 @@ export const getLeadsRepository = async (filters) => {
     order = "DESC",
   } = filters;
 
-  let query = `
-    SELECT
-      l.*,
-      e.full_name AS assigned_employee,
-      c.course_name
-    FROM leads l
-    LEFT JOIN employees e
-      ON l.assigned_to = e.id
-    LEFT JOIN courses c
-      ON l.course_id = c.id
-    WHERE l.is_deleted = FALSE
-  `;
-
   const values = [];
   let index = 1;
 
-  /**
-   * --------------------------------------
-   * Search
-   * --------------------------------------
-   */
+  let whereClause = `
+    WHERE l.is_deleted = FALSE
+  `;
+
+  // ==========================
+  // Search
+  // ==========================
 
   if (search) {
 
-    query += `
+    whereClause += `
       AND (
-
         l.lead_code ILIKE $${index}
-
         OR l.full_name ILIKE $${index}
-
         OR l.email ILIKE $${index}
-
         OR l.mobile ILIKE $${index}
-
       )
     `;
 
     values.push(`%${search}%`);
-
     index++;
 
   }
 
-  /**
-   * --------------------------------------
-   * Source Filter
-   * --------------------------------------
-   */
+  // ==========================
+  // Source Filter
+  // ==========================
 
   if (source) {
 
-    query += `
-
+    whereClause += `
       AND l.source = $${index}
-
     `;
 
     values.push(source);
-
     index++;
 
   }
 
-  /**
-   * --------------------------------------
-   * Status Filter
-   * --------------------------------------
-   */
+  // ==========================
+  // Status Filter
+  // ==========================
 
   if (status) {
 
-    query += `
-
+    whereClause += `
       AND l.status = $${index}
-
     `;
 
     values.push(status);
-
     index++;
 
   }
 
-  /**
-   * --------------------------------------
-   * Priority Filter
-   * --------------------------------------
-   */
+  // ==========================
+  // Priority Filter
+  // ==========================
 
   if (priority) {
 
-    query += `
-
+    whereClause += `
       AND l.priority = $${index}
-
     `;
 
     values.push(priority);
-
     index++;
 
   }
 
-  /**
-   * --------------------------------------
-   * Assigned Employee Filter
-   * --------------------------------------
-   */
+  // ==========================
+  // Assigned Employee Filter
+  // ==========================
 
   if (assigned_to) {
 
-    query += `
-
+    whereClause += `
       AND l.assigned_to = $${index}
-
     `;
 
     values.push(assigned_to);
-
     index++;
 
   }
 
-  /**
-   * --------------------------------------
-   * Count Query
-   * --------------------------------------
-   */
+  // ==========================
+  // Count Query
+  // ==========================
 
-  const countQuery =
-    query.replace(
-      "SELECT\n      l.*,\n      e.full_name AS assigned_employee,\n      c.course_name",
-      "SELECT COUNT(*)"
-    );
+  const countQuery = `
+    SELECT COUNT(*) AS total
+    FROM leads l
+    ${whereClause}
+  `;
 
-  const countResult =
-    await pool.query(
-      countQuery,
-      values
-    );
+  const countResult = await pool.query(
+    countQuery,
+    values
+  );
 
-  const totalRecords =
-    Number(
-      countResult.rows[0].count
-    );
+  const totalRecords = Number(
+    countResult.rows[0].total
+  );
 
-  /**
-   * --------------------------------------
-   * Sorting
-   * --------------------------------------
-   */
+  // ==========================
+  // Sorting
+  // ==========================
 
   const allowedSort = [
-
     "created_at",
-
     "full_name",
-
     "lead_code",
-
     "status",
-
     "priority",
-
   ];
 
-  const sortColumn =
-    allowedSort.includes(sortBy)
-      ? sortBy
-      : "created_at";
+  const sortColumn = allowedSort.includes(sortBy)
+    ? sortBy
+    : "created_at";
 
   const sortOrder =
     order.toUpperCase() === "ASC"
       ? "ASC"
       : "DESC";
 
-  query += `
+  // ==========================
+  // Main Query
+  // ==========================
+
+  const query = `
+    SELECT
+      l.*,
+      e.full_name AS assigned_employee,
+      cp.campaign_name AS course_name
+
+    FROM leads l
+
+    LEFT JOIN employees e
+      ON l.assigned_to = e.id
+
+    LEFT JOIN campaigns cp
+      ON l.campaign_id = cp.id
+
+    ${whereClause}
 
     ORDER BY l.${sortColumn} ${sortOrder}
 
     LIMIT $${index}
 
     OFFSET $${index + 1}
-
   `;
 
   values.push(Number(limit));
 
   values.push(
-    (Number(page) - 1) *
-      Number(limit)
+    (Number(page) - 1) * Number(limit)
   );
 
-  const result =
-    await pool.query(
-      query,
-      values
-    );
+  const result = await pool.query(
+    query,
+    values
+  );
 
   return {
 
@@ -385,9 +349,8 @@ export const getLeadsRepository = async (filters) => {
 
       totalRecords,
 
-      totalPages: Math.ceil(
-        totalRecords / Number(limit)
-      ),
+      totalPages:
+        Math.ceil(totalRecords / Number(limit)) || 1,
 
     },
 
@@ -414,7 +377,7 @@ export const updateLeadRepository = async (
         full_name = $1,
         email = $2,
         mobile = $3,
-        course_id = $4,
+        campaign_id = $4,
         assigned_to = $5,
         source = $6,
         status = $7,
@@ -431,7 +394,7 @@ export const updateLeadRepository = async (
       lead.full_name,
       lead.email,
       lead.mobile,
-      lead.course_id,
+      lead.campaign_id,
       lead.assigned_to,
       lead.source,
       lead.status,

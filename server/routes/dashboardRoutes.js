@@ -1,35 +1,24 @@
 import express from "express";
 
-import authMiddleware from "../middleware/authMiddleware.js";
-import roleMiddleware from "../middleware/roleMiddleware.js";
-
-import ROLES from "../constants/roles.js";
+import verifyToken from "../middleware/authMiddleware.js";
 
 import {
-  getDashboard,
+    getDashboardOverview,
+    getLeadAnalytics,
 } from "../controllers/dashboardController.js";
 
 const router = express.Router();
 
-/**
- * =====================================================
- * Dashboard
- * =====================================================
- */
+router.get(
+    "/overview",
+    verifyToken,
+    getDashboardOverview
+);
 
 router.get(
-
-  "/",
-
-  authMiddleware,
-
-  roleMiddleware(
-    ROLES.ADMIN,
-    ROLES.COUNSELLOR
-  ),
-
-  getDashboard
-
+    "/lead-analytics",
+    verifyToken,
+    getLeadAnalytics
 );
 
 export default router;

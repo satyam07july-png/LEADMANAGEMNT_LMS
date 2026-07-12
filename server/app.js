@@ -16,6 +16,10 @@ import leadRoutes from "./routes/leadRoutes.js";
 import healthRoutes from "./routes/health.routes.js";
 import leadCaptureRoutes from "./routes/leadCaptureRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
+import leadAssignmentRoutes
+from "./routes/leadAssignmentRoutes.js";
+import followupRoutes
+from "./routes/followupRoutes.js";
 
 /* Middlewares */
 import { globalLimiter } from "./middleware/rateLimiter.js";
@@ -118,7 +122,17 @@ app.use(
   leadCaptureRoutes
 );
 
+app.use(
+"/api/lead-assignments",
+leadAssignmentRoutes
+);
+
 app.use("/api/dashboard", dashboardRoutes);
+
+app.use(
+    "/api/followups",
+    followupRoutes
+);
 
 /**
  * =====================================================

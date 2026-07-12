@@ -76,16 +76,16 @@ export const getLeadAssignmentsRepository = async (
       previousEmployee.employee_code
         AS previous_employee_code,
 
-      previousUser.full_name
+      previousEmployee.full_name
         AS previous_counsellor,
 
       currentEmployee.employee_code
         AS assigned_employee_code,
 
-      currentUser.full_name
+      currentEmployee.full_name
         AS assigned_counsellor,
 
-      assignedBy.full_name
+      assignedEmployee.full_name
         AS assigned_by
 
     FROM lead_assignments la
@@ -93,21 +93,15 @@ export const getLeadAssignmentsRepository = async (
     LEFT JOIN employees previousEmployee
       ON previousEmployee.id = la.previous_assigned_to
 
-    LEFT JOIN users previousUser
-      ON previousEmployee.user_id = previousUser.id
-
     LEFT JOIN employees currentEmployee
       ON currentEmployee.id = la.assigned_to
 
-    LEFT JOIN users currentUser
-      ON currentEmployee.user_id = currentUser.id
-
-    LEFT JOIN users assignedBy
-      ON assignedBy.id = la.assigned_by
+    LEFT JOIN employees assignedEmployee
+      ON assignedEmployee.id = la.assigned_by
 
     WHERE la.lead_id = $1
 
-    ORDER BY la.id DESC
+    ORDER BY la.assigned_at DESC
 
     LIMIT $2
     OFFSET $3;
@@ -119,14 +113,10 @@ export const getLeadAssignmentsRepository = async (
     offset,
   ];
 
-  const { rows } = await pool.query(
-    query,
-    values
-  );
+  const { rows } = await pool.query(query, values);
 
   return rows;
 };
-
 /**
  * =====================================================
  * Get Total Assignment Count
@@ -181,14 +171,14 @@ export const getLatestAssignmentRepository = async (
 
       u.full_name AS counsellor_name
 
+      e.full_name AS counsellor_name
+
     FROM lead_assignments la
 
     LEFT JOIN employees e
       ON la.assigned_to = e.id
 
-    LEFT JOIN users u
-      ON e.user_id = u.id
-
+    
     WHERE la.lead_id = $1
 
     ORDER BY la.id DESC
@@ -217,35 +207,29 @@ export const getAssignmentByIdRepository = async (
   const query = `
     SELECT
 
-      la.*,
+    la.*,
 
-      currentUser.full_name
-        AS assigned_counsellor,
+    currentEmployee.full_name
+      AS assigned_counsellor,
 
-      previousUser.full_name
-        AS previous_counsellor,
+    previousEmployee.full_name
+      AS previous_counsellor,
 
-      assignedBy.full_name
-        AS assigned_by_name
+    assignedEmployee.full_name
+      AS assigned_by_name
 
-    FROM lead_assignments la
+FROM lead_assignments la
 
-    LEFT JOIN employees currentEmployee
-      ON la.assigned_to = currentEmployee.id
+LEFT JOIN employees currentEmployee
+    ON la.assigned_to = currentEmployee.id
 
-    LEFT JOIN users currentUser
-      ON currentEmployee.user_id = currentUser.id
+LEFT JOIN employees previousEmployee
+    ON la.previous_assigned_to = previousEmployee.id
 
-    LEFT JOIN employees previousEmployee
-      ON la.previous_assigned_to = previousEmployee.id
+LEFT JOIN employees assignedEmployee
+    ON la.assigned_by = assignedEmployee.id
 
-    LEFT JOIN users previousUser
-      ON previousEmployee.user_id = previousUser.id
-
-    LEFT JOIN users assignedBy
-      ON la.assigned_by = assignedBy.id
-
-    WHERE la.id = $1;
+WHERE la.id = $1;
   `;
 
   const { rows } = await pool.query(

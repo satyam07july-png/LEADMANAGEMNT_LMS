@@ -10,15 +10,16 @@ import {
 
   getRecentActivitiesRepository,
 
+  getLeadAnalyticsRepository,
+
 } from "../repositories/dashboardRepository.js";
 
 /**
  * =====================================================
- * Dashboard Service
+ * Dashboard Overview
  * =====================================================
  */
-
-export const getDashboardService = async () => {
+export const getDashboardOverviewService = async () => {
 
   const [
 
@@ -59,5 +60,16 @@ export const getDashboardService = async () => {
     recentActivities,
 
   };
+
+};
+
+/**
+ * =====================================================
+ * Lead Analytics
+ * =====================================================
+ */
+export const getLeadAnalyticsService = async () => {
+
+  return await getLeadAnalyticsRepository();
 
 };

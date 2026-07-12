@@ -112,10 +112,21 @@ export const loginUserService = async (
   password
 ) => {
 
+  console.log("================================");
+  console.log("Login Email:", email);
+
   const user =
     await findUserByEmailWithPasswordRepository(
       email
     );
+
+  console.log("User Found:", !!user);
+
+  if (user) {
+    console.log("DB Email:", user.email);
+    console.log("DB Role:", user.role);
+    console.log("DB Password Hash:", user.password);
+  }
 
   if (!user) {
 
@@ -126,29 +137,14 @@ export const loginUserService = async (
 
   }
 
-  if (user.is_deleted) {
-
-    throw new ApiError(
-      403,
-      "User account has been deleted."
-    );
-
-  }
-
-  if (!user.is_active) {
-
-    throw new ApiError(
-      403,
-      "User account is inactive."
-    );
-
-  }
-
   const isPasswordCorrect =
     await bcrypt.compare(
       password,
       user.password
     );
+
+  console.log("Entered Password:", password);
+  console.log("Password Match:", isPasswordCorrect);
 
   if (!isPasswordCorrect) {
 
@@ -159,30 +155,20 @@ export const loginUserService = async (
 
   }
 
-  await updateLastLoginRepository(
-    user.id
-  );
+  await updateLastLoginRepository(user.id);
 
-  const accessToken =
-    generateAccessToken(user);
+  const accessToken = generateAccessToken(user);
 
-  const refreshToken =
-    generateRefreshToken(user);
+  const refreshToken = generateRefreshToken(user);
 
   delete user.password;
 
   return {
-
     user,
-
     accessToken,
-
     refreshToken,
-
   };
-
 };
-
 /**
  * =====================================================
  * Get Profile
