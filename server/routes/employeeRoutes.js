@@ -6,7 +6,10 @@ import validate from "../middleware/validate.js";
 
 import ROLES from "../constants/roles.js";
 
-import { createEmployeeValidator } from "../validators/employee.validator.js";
+import {
+    createEmployeeValidator,
+    updateEmployeeValidator
+} from "../validators/employee.validator.js";
 
 import {
   createEmployee,
@@ -32,14 +35,22 @@ router.post(
 router.get(
   "/",
   authMiddleware,
+  roleMiddleware(
+    ROLES.ADMIN,
+    ROLES.COUNSELLOR
+  ),
   getAllEmployees
 );
 
 router.get(
-    "/statistics",
-    authMiddleware,
-    getEmployeeStatistics
-);
+  "/statistics",
+  authMiddleware,
+  roleMiddleware(
+    ROLES.ADMIN,
+    ROLES.COUNSELLOR
+  ),
+  getEmployeeStatistics
+);;
 
 router.get(
   "/:id",
@@ -51,6 +62,8 @@ router.put(
   "/:id",
   authMiddleware,
   roleMiddleware(ROLES.ADMIN),
+  updateEmployeeValidator,
+  validate,
   updateEmployee
 );
 

@@ -18,6 +18,7 @@ import {
   getLeadStatisticsRepository,
   assignLeadRepository,
   updateLeadStatusRepository,
+  assignBulkLeadsRepository,
 } from "../repositories/leadRepository.js";
 
 import {
@@ -788,3 +789,64 @@ export const getLeadTimelineService = async (
   );
 
 };
+
+// =====================================================
+// Bulk Assign Leads Service
+// =====================================================
+
+export const assignBulkLeadsService = async (
+
+  payload,
+
+  currentUser
+
+) => {
+
+  const client = await pool.connect();
+
+  try {
+
+    await client.query("BEGIN");
+
+    const {
+
+      lead_ids,
+
+      employee_id,
+
+    } = payload;
+
+    const result = await assignBulkLeadsRepository(
+
+      client,
+
+      {
+
+        lead_ids,
+
+        employee_id,
+
+        updated_by: currentUser.id,
+
+      }
+
+    );
+
+    await client.query("COMMIT");
+
+    return result;
+
+  } catch (error) {
+
+    await client.query("ROLLBACK");
+
+    throw error;
+
+  } finally {
+
+    client.release();
+
+  }
+
+};
+

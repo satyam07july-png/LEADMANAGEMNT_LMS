@@ -1,617 +1,1509 @@
 import pool from "../config/db.js";
 
-/**
- * =====================================================
- * Create Follow-up
- * =====================================================
+/* ============================================================================
+ * FOLLOW-UP REPOSITORY
+ * Enterprise Repository
+ * Version : 1.0
+ * ============================================================================
  */
-export const createFollowupRepository = async (
-  client,
-  followup
-) => {
 
-  const query = `
-    INSERT INTO lead_followups (
+/* ============================================================================
+ * TABLE
+ * ============================================================================
+ */
 
-      lead_id,
-      employee_id,
-      followup_type,
-      status,
-      outcome,
-      priority,
-      next_followup_at,
-      remarks,
-      created_by
+const TABLE = "lead_followups";
 
-    )
+/* ============================================================================
+ * COLUMN DEFINITIONS
+ * ============================================================================
+ */
 
-    VALUES (
-      $1,$2,$3,$4,$5,$6,$7,$8,$9
-    )
+const FOLLOWUP_COLUMNS = `
+    lf.id,
+    lf.lead_id,
+    lf.employee_id,
+    lf.followup_type,
+    lf.status,
+    lf.outcome,
+    lf.priority,
+    lf.next_followup_at,
+    lf.remarks,
+    lf.created_by,
+    lf.updated_by,
+    lf.created_at,
+    lf.updated_at,
+    lf.is_deleted,
+    lf.deleted_at,
+    lf.deleted_by
+`;
+const LEAD_COLUMNS = `
+    l.lead_code,
+    l.full_name AS lead_name,
+    l.mobile,
+    l.email,
+    l.interested_course
+`;
 
-    RETURNING *;
-  `;
+const EMPLOYEE_COLUMNS = `
+    e.employee_code,
+    e.full_name AS counsellor_name
+`;
 
-  const values = [
+/* ============================================================================
+ * JOINS
+ * ============================================================================
+ */
 
-    followup.lead_id,
+const LEAD_JOIN = `
+INNER JOIN leads l
+ON l.id = lf.lead_id
+`;
 
-    followup.employee_id,
+const EMPLOYEE_JOIN = `
+INNER JOIN employees e
+ON e.id = lf.employee_id
+`;
 
-    followup.followup_type,
+/* ============================================================================
+ * FILTERS
+ * ============================================================================
+ */
 
-    followup.status,
+const SOFT_DELETE_FILTER = "lf.is_deleted = FALSE";
 
-    followup.outcome,
+/* ============================================================================
+ * DEFAULTS
+ * ============================================================================
+ */
 
-    followup.priority,
+const DEFAULT_PAGE = 1;
 
-    followup.next_followup_at,
+const DEFAULT_LIMIT = 20;
 
-    followup.remarks,
+const MAX_LIMIT = 100;
 
-    followup.created_by,
+const DEFAULT_SORT_BY = "created_at";
 
-  ];
+const DEFAULT_SORT_ORDER = "DESC";
 
-  const { rows } =
-    await client.query(query, values);
+/* ============================================================================
+ * ALLOWED SORT COLUMNS
+ * SQL Injection Protection
+ * ============================================================================
+ */
 
-  return rows[0];
+const ALLOWED_SORT_COLUMNS = [
 
-};
+    "created_at",
 
-export const findFollowupByIdRepository =
-async (id) => {
+    "updated_at",
 
-  const query = `
-    SELECT *
+    "next_followup_at",
 
-    FROM lead_followups
+    "priority",
 
-    WHERE
+    "status",
 
-      id = $1
+    "outcome"
 
-      AND is_deleted = FALSE;
-  `;
+];
 
-  const { rows } =
-    await pool.query(query,[id]);
+/* ============================================================================
+ * PAGINATION
+ * ============================================================================
+ */
 
-  return rows[0];
+const getPagination = (
 
-};
+    page = DEFAULT_PAGE,
 
-export const getLeadFollowupsRepository =
-async (
-
-  leadId,
-
-  page = 1,
-
-  limit = 20
-
-) => {
-
-  const offset =
-    (page-1)*limit;
-
-  const query = `
-
-    SELECT
-
-      lf.*,
-
-      e.employee_code,
-
-      e.full_name
-
-    FROM lead_followups lf
-
-    INNER JOIN employees e
-
-      ON lf.employee_id = e.id
-
-    WHERE
-
-      lf.lead_id = $1
-
-      AND lf.is_deleted = FALSE
-
-    ORDER BY
-
-      lf.created_at DESC
-
-    LIMIT $2
-
-    OFFSET $3;
-
-  `;
-
-  const values = [
-
-    leadId,
-
-    limit,
-
-    offset
-
-  ];
-
-  const { rows } =
-    await pool.query(query,values);
-
-  return rows;
-
-};
-
-export const getPendingFollowupsRepository =
-async (
-
-  employeeId
+    limit = DEFAULT_LIMIT
 
 ) => {
 
-  const query = `
+    const currentPage =
+        Math.max(Number(page) || DEFAULT_PAGE, 1);
 
-    SELECT *
+    const currentLimit =
+        Math.min(
+            Math.max(Number(limit) || DEFAULT_LIMIT, 1),
+            MAX_LIMIT
+        );
 
-    FROM lead_followups
+    return {
 
-    WHERE
+        page: currentPage,
 
-      employee_id = $1
+        limit: currentLimit,
 
-      AND status='PENDING'
+        offset: (currentPage - 1) * currentLimit,
 
-      AND is_deleted = FALSE
-
-    ORDER BY next_followup_at ASC;
-
-  `;
-
-  const { rows } =
-    await pool.query(
-      query,
-      [employeeId]
-    );
-
-  return rows;
+    };
 
 };
 
-export const getTodayFollowupsRepository =
-async (
+/* ============================================================================
+ * SORT BUILDER
+ * ============================================================================
+ */
 
-  employeeId
+const buildSort = (
+
+    sortBy = DEFAULT_SORT_BY,
+
+    sortOrder = DEFAULT_SORT_ORDER
 
 ) => {
 
-  const query = `
+    const column =
 
-    SELECT *
+        ALLOWED_SORT_COLUMNS.includes(sortBy)
 
-    FROM lead_followups
+            ? sortBy
 
-    WHERE
+            : DEFAULT_SORT_BY;
 
-      employee_id = $1
+    const order =
 
-      AND DATE(next_followup_at)=CURRENT_DATE
+        String(sortOrder).toUpperCase() === "ASC"
 
-      AND is_deleted = FALSE
+            ? "ASC"
 
-    ORDER BY next_followup_at ASC;
+            : "DESC";
 
-  `;
-
-  const { rows } =
-    await pool.query(
-      query,
-      [employeeId]
-    );
-
-  return rows;
+    return `ORDER BY lf.${column} ${order}`;
 
 };
 
-export const getOverdueFollowupsRepository =
-async (
+/* ============================================================================
+ * SEARCH BUILDER
+ * ============================================================================
+ */
 
-  employeeId
+const buildSearch = (
+
+    search,
+
+    values,
+
+    index
 
 ) => {
 
-  const query = `
+    if (!search?.trim()) {
 
-    SELECT *
+        return {
 
-    FROM lead_followups
+            clause: "",
 
-    WHERE
+            values,
 
-      employee_id = $1
+            index,
 
-      AND status='PENDING'
+        };
 
-      AND next_followup_at < NOW()
+    }
 
-      AND is_deleted = FALSE
+    values.push(`%${search.trim()}%`);
 
-    ORDER BY next_followup_at ASC;
+    return {
 
-  `;
+        clause: `
 
-  const { rows } =
-    await pool.query(
-      query,
-      [employeeId]
-    );
+        AND (
 
-  return rows;
+            l.full_name ILIKE $${index}
 
-};
+            OR
 
-export const deleteFollowupRepository =
-async (
+            l.mobile ILIKE $${index}
 
-  client,
+            OR
 
-  id,
+            l.lead_code ILIKE $${index}
 
-  updatedBy
+        )
 
-) => {
+        `,
 
-  const query = `
+        values,
 
-    UPDATE lead_followups
+        index: index + 1,
 
-    SET
-
-      is_deleted = TRUE,
-
-      updated_by = $1,
-
-      updated_at = CURRENT_TIMESTAMP
-
-    WHERE id = $2
-
-    RETURNING *;
-
-  `;
-
-  const { rows } =
-    await client.query(
-      query,
-      [
-
-        updatedBy,
-
-        id
-
-      ]
-    );
-
-  return rows[0];
+    };
 
 };
 
-export const updateFollowupRepository = async (
-    client,
+/* ============================================================================
+ * DUE FILTER
+ * ============================================================================
+ */
+
+const buildDueFilter = (dueType) => {
+
+    switch (dueType) {
+
+        case "TODAY":
+
+            return `
+            AND DATE(lf.next_followup_at)=CURRENT_DATE
+            `;
+
+        case "TOMORROW":
+
+            return `
+            AND DATE(lf.next_followup_at)=CURRENT_DATE + 1
+            `;
+
+        case "OVERDUE":
+
+            return `
+            AND lf.status='PENDING'
+            AND lf.next_followup_at < NOW()
+            `;
+
+        case "UPCOMING":
+
+            return `
+            AND lf.next_followup_at > NOW()
+            `;
+
+        case "NEXT_7_DAYS":
+
+            return `
+            AND lf.next_followup_at
+            BETWEEN NOW()
+            AND NOW()+INTERVAL '7 DAY'
+            `;
+
+        default:
+
+            return "";
+
+    }
+
+};
+
+/* ============================================================================
+ * WHERE BUILDER
+ * ============================================================================
+ */
+
+const buildWhereClause = (filters = {}) => {
+
+    const clauses = [
+
+        SOFT_DELETE_FILTER
+
+    ];
+
+    const values = [];
+
+    let index = 1;
+
+    const addFilter = (condition, value) => {
+
+        clauses.push(condition);
+
+        values.push(value);
+
+        index++;
+
+    };
+
+    if (filters.employeeId) {
+
+        addFilter(
+
+            `lf.employee_id = $${index}`,
+
+            filters.employeeId
+
+        );
+
+    }
+
+    if (filters.leadId) {
+
+        addFilter(
+
+            `lf.lead_id = $${index}`,
+
+            filters.leadId
+
+        );
+
+    }
+
+    if (filters.status) {
+
+        addFilter(
+
+            `lf.status = $${index}`,
+
+            filters.status
+
+        );
+
+    }
+
+    if (filters.priority) {
+
+        addFilter(
+
+            `lf.priority = $${index}`,
+
+            filters.priority
+
+        );
+
+    }
+
+    if (filters.outcome) {
+
+        addFilter(
+
+            `lf.outcome = $${index}`,
+
+            filters.outcome
+
+        );
+
+    }
+
+    return {
+
+        where: clauses.join("\nAND "),
+
+        values,
+
+        index,
+
+    };
+
+};
+
+/* ============================================================================
+ * PRIVATE QUERY EXECUTOR
+ * ============================================================================
+ */
+
+const executeQuery = async (client, query, values = []) => {
+
+    const { rows } = await client.query(query, values);
+
+    return rows;
+
+};
+
+/* ============================================================================
+ * DYNAMIC UPDATE QUERY BUILDER
+ * ============================================================================
+ */
+
+const buildUpdateQuery = (
+
+    table,
+
     id,
+
+    fields,
+
+    idColumn = "id"
+
+) => {
+
+    const updates = [];
+
+    const values = [];
+
+    let index = 1;
+
+    Object.entries(fields).forEach(([column, value]) => {
+
+        updates.push(`${column} = $${index}`);
+
+        values.push(value);
+
+        index++;
+
+    });
+
+    updates.push(`updated_at = CURRENT_TIMESTAMP`);
+
+    values.push(id);
+
+    return {
+
+        query: `
+
+            UPDATE ${table}
+
+            SET
+
+                ${updates.join(",\n")}
+
+            WHERE
+
+                ${idColumn} = $${index}
+
+                AND is_deleted = FALSE
+
+            RETURNING *;
+
+        `,
+
+        values,
+
+    };
+
+};
+
+/* ============================================================================
+ * EXECUTE UPDATE
+ * ============================================================================
+ */
+
+const executeUpdate = async (
+
+    client,
+
+    table,
+
+    id,
+
+    fields
+
+) => {
+
+    const {
+
+        query,
+
+        values,
+
+    } = buildUpdateQuery(
+
+        table,
+
+        id,
+
+        fields
+
+    );
+
+    const rows = await executeQuery(
+
+        client,
+
+        query,
+
+        values
+
+    );
+
+    return rows[0] || null;
+
+};
+
+export const createFollowupRepository = async (
+    client,
     followup
 ) => {
 
     const query = `
-        UPDATE lead_followups
+        INSERT INTO lead_followups (
 
-        SET
+            lead_id,
+            employee_id,
+            followup_type,
+            status,
+            outcome,
+            priority,
+            next_followup_at,
+            remarks,
+            created_by
 
-            status = $1,
+        )
 
-            outcome = $2,
+        VALUES (
 
-            priority = $3,
+            $1,$2,$3,$4,$5,$6,$7,$8,$9
 
-            next_followup_at = $4,
-
-            remarks = $5,
-
-            updated_by = $6,
-
-            updated_at = CURRENT_TIMESTAMP
-
-        WHERE
-
-            id = $7
-
-            AND is_deleted = FALSE
+        )
 
         RETURNING *;
     `;
 
     const values = [
 
+        followup.lead_id,
+        followup.employee_id,
+        followup.followup_type,
         followup.status,
         followup.outcome,
         followup.priority,
         followup.next_followup_at,
         followup.remarks,
-        followup.updated_by,
-        id,
+        followup.created_by,
 
     ];
 
-    const { rows } =
-        await client.query(query, values);
+    const rows = await executeQuery(
+        client,
+        query,
+        values
+    );
 
-    return rows[0];
+    return rows[0] || null;
 
 };
 
-export const completeFollowupRepository = async (
-  client,
-  id,
-  completedBy,
-  outcome,
-  remarks
-) => {
+export const updateFollowupRepository = (
 
-  const query = `
-    UPDATE lead_followups
-    SET
-      status = 'COMPLETED',
-      outcome = $1,
-      remarks = $2,
-      updated_by = $3,
-      updated_at = CURRENT_TIMESTAMP
-    WHERE
-      id = $4
-      AND is_deleted = FALSE
-    RETURNING *;
-  `;
+    client,
 
-  const { rows } = await client.query(query, [
+    followupId,
+
+    fields
+
+) => executeUpdate(
+
+    client,
+
+    TABLE,
+
+    followupId,
+
+    fields
+
+);
+
+export const completeFollowupRepository = (
+
+    client,
+
+    followupId,
+
     outcome,
+
     remarks,
-    completedBy,
-    id,
-  ]);
 
-  return rows[0];
+    updatedBy
 
-};
+) => executeUpdate(
 
-export const rescheduleFollowupRepository = async (
-  client,
-  id,
-  nextFollowupAt,
-  remarks,
-  updatedBy
-) => {
+    client,
 
-  const query = `
-    UPDATE lead_followups
-    SET
+    TABLE,
 
-      status = 'RESCHEDULED',
+    followupId,
 
-      next_followup_at = $1,
+    {
 
-      remarks = $2,
+        status: "COMPLETED",
 
-      updated_by = $3,
+        outcome,
 
-      updated_at = CURRENT_TIMESTAMP
+        remarks,
 
-    WHERE
+        updated_by: updatedBy,
 
-      id = $4
+    }
 
-      AND is_deleted = FALSE
+);
 
-    RETURNING *;
-  `;
+export const rescheduleFollowupRepository = (
 
-  const { rows } = await client.query(query, [
+    client,
+
+    followupId,
 
     nextFollowupAt,
 
     remarks,
 
-    updatedBy,
+    updatedBy
 
-    id,
+) => executeUpdate(
 
-  ]);
+    client,
 
-  return rows[0];
+    TABLE,
+
+    followupId,
+
+   {
+    next_followup_at: nextFollowupAt,
+    remarks,
+    updated_by: updatedBy,
+}
+
+);
+
+export const softDeleteFollowupRepository = (
+
+    client,
+
+    followupId,
+
+    deletedBy
+
+) => executeUpdate(
+
+    client,
+
+    TABLE,
+
+    followupId,
+
+    {
+
+        is_deleted: true,
+
+        deleted_by: deletedBy,
+
+        deleted_at: new Date(),
+
+        updated_by: deletedBy,
+
+    }
+
+);
+
+export const restoreFollowupRepository = async (
+    client,
+    followupId,
+    updatedBy
+) => {
+
+    const query = `
+        UPDATE lead_followups
+        SET
+            is_deleted = FALSE,
+            deleted_at = NULL,
+            deleted_by = NULL,
+            updated_by = $2,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE
+            id = $1
+            AND is_deleted = TRUE
+        RETURNING *;
+    `;
+
+    const { rows } = await client.query(query, [
+        followupId,
+        updatedBy,
+    ]);
+
+    return rows[0] || null;
+};
+/* ============================================================================
+ * UNIVERSAL FOLLOWUP REPOSITORY
+ * ============================================================================
+ */
+
+export const getFollowupsRepository = async ({
+    employeeId,
+    leadId,
+    status,
+    priority,
+    outcome,
+    dueType,
+    search,
+    page = DEFAULT_PAGE,
+    limit = DEFAULT_LIMIT,
+    sortBy = DEFAULT_SORT_BY,
+    sortOrder = DEFAULT_SORT_ORDER,
+}) => {
+
+    /* -------------------------------------------------------------
+     * WHERE
+     * ------------------------------------------------------------- */
+
+    const whereResult = buildWhereClause({
+        employeeId,
+        leadId,
+        status,
+        priority,
+        outcome,
+    });
+
+    /* -------------------------------------------------------------
+     * SEARCH
+     * ------------------------------------------------------------- */
+
+    const searchResult = buildSearch(
+        search,
+        whereResult.values,
+        whereResult.index
+    );
+
+    /* -------------------------------------------------------------
+     * PAGINATION
+     * ------------------------------------------------------------- */
+
+    const pagination = getPagination(page, limit);
+
+    /* -------------------------------------------------------------
+     * SORTING
+     * ------------------------------------------------------------- */
+
+    const orderBy = buildSort(sortBy, sortOrder);
+
+    /* -------------------------------------------------------------
+     * DUE FILTER
+     * ------------------------------------------------------------- */
+
+    const dueFilter = buildDueFilter(dueType);
+
+    /* -------------------------------------------------------------
+     * FINAL VALUES
+     * ------------------------------------------------------------- */
+
+    const values = [...searchResult.values];
+
+    values.push(pagination.limit);
+    values.push(pagination.offset);
+
+    const limitIndex = values.length - 1;
+    const offsetIndex = values.length;
+
+    /* -------------------------------------------------------------
+     * DATA QUERY
+     * ------------------------------------------------------------- */
+
+    const dataQuery = `
+
+        SELECT
+
+            ${FOLLOWUP_COLUMNS},
+
+            ${LEAD_COLUMNS},
+
+            ${EMPLOYEE_COLUMNS}
+
+        FROM lead_followups lf
+
+        ${LEAD_JOIN}
+
+        ${EMPLOYEE_JOIN}
+
+        WHERE
+
+            ${whereResult.where}
+
+            ${searchResult.clause}
+
+            ${dueFilter}
+
+        ${orderBy}
+
+        LIMIT $${limitIndex}
+
+        OFFSET $${offsetIndex};
+
+    `;
+
+    /* -------------------------------------------------------------
+     * COUNT QUERY
+     * ------------------------------------------------------------- */
+
+    const countQuery = `
+
+        SELECT COUNT(*) AS total
+
+        FROM lead_followups lf
+
+        ${LEAD_JOIN}
+
+        ${EMPLOYEE_JOIN}
+
+        WHERE
+
+            ${whereResult.where}
+
+            ${searchResult.clause}
+
+            ${dueFilter};
+
+    `;
+
+    const [dataResult, countResult] = await Promise.all([
+
+        pool.query(dataQuery, values),
+
+        pool.query(countQuery, searchResult.values),
+
+    ]);
+
+    const total = Number(countResult.rows[0].total);
+
+    return {
+
+        data: dataResult.rows,
+
+        pagination: {
+
+            page: pagination.page,
+
+            limit: pagination.limit,
+
+            total,
+
+            totalPages: Math.ceil(total / pagination.limit),
+
+            hasNext:
+                pagination.page < Math.ceil(total / pagination.limit),
+
+            hasPrevious:
+                pagination.page > 1,
+
+        },
+
+    };
 
 };
 
-export const getCompletedFollowupsRepository = async (
-  employeeId,
-  page = 1,
-  limit = 20
+export const getTodayFollowupsRepository = (
+    employeeId,
+    options = {}
+) =>
+    getFollowupsRepository({
+        employeeId,
+        dueType: "TODAY",
+        ...options,
+    });
+
+export const getPendingFollowupsRepository = (
+    employeeId,
+    options = {}
+) =>
+    getFollowupsRepository({
+        employeeId,
+        status: "PENDING",
+        ...options,
+    });
+
+
+export const getCompletedFollowupsRepository = (
+    employeeId,
+    options = {}
+) =>
+    getFollowupsRepository({
+        employeeId,
+        status: "COMPLETED",
+        ...options,
+    });
+
+export const getOverdueFollowupsRepository = (
+    employeeId,
+    options = {}
+) =>
+    getFollowupsRepository({
+        employeeId,
+        dueType: "OVERDUE",
+        ...options,
+    });
+
+export const getUpcomingFollowupsRepository = (
+    employeeId,
+    options = {}
+) =>
+    getFollowupsRepository({
+        employeeId,
+        dueType: "UPCOMING",
+        ...options,
+    });
+
+export const getTomorrowFollowupsRepository = (
+    employeeId,
+    options = {}
+) =>
+    getFollowupsRepository({
+        employeeId,
+        dueType: "TOMORROW",
+        ...options,
+    });
+
+export const getMissedFollowupsRepository = (
+    employeeId,
+    options = {}
+) =>
+    getFollowupsRepository({
+        employeeId,
+        status: "MISSED",
+        ...options,
+    });
+
+export const findFollowupByIdRepository = async (
+    followupId,
+    client = pool,
+    includeDeleted = false
 ) => {
 
-  const offset = (page - 1) * limit;
+    console.log("followupId:", followupId);
+    console.log("includeDeleted:", includeDeleted);
 
-  const query = `
-    SELECT
-      lf.*,
-      l.lead_code,
-      l.full_name AS lead_name,
-      e.full_name AS counsellor_name
-    FROM lead_followups lf
+    const query = `
+        SELECT
+            ${FOLLOWUP_COLUMNS},
+            ${LEAD_COLUMNS},
+            ${EMPLOYEE_COLUMNS}
+        FROM lead_followups lf
+        ${LEAD_JOIN}
+        ${EMPLOYEE_JOIN}
+        WHERE
+            lf.id = $1
+            ${includeDeleted ? "" : "AND lf.is_deleted = FALSE"}
+    `;
 
-    INNER JOIN leads l
-      ON l.id = lf.lead_id
+    console.log(query);
 
-    INNER JOIN employees e
-      ON e.id = lf.employee_id
+    const { rows } = await client.query(query, [followupId]);
 
-    WHERE
+    console.log(rows);
 
-      lf.employee_id = $1
+    return rows[0] || null;
+};
 
-      AND lf.status = 'COMPLETED'
+export const checkFollowupOwnershipRepository = async (
+    followupId,
+    employeeId
+) => {
 
-      AND lf.is_deleted = FALSE
+    const query = `
+        SELECT 1
 
-    ORDER BY lf.updated_at DESC
+        FROM lead_followups
 
-    LIMIT $2 OFFSET $3;
-  `;
+        WHERE
+            id = $1
+            AND employee_id = $2
+            AND is_deleted = FALSE
+    `;
 
-  const { rows } =
-    await pool.query(query, [
-      employeeId,
-      limit,
-      offset,
+    const { rowCount } = await pool.query(query, [
+        followupId,
+        employeeId,
     ]);
 
-  return rows;
+    return rowCount > 0;
+};
+
+export const checkPendingFollowupRepository = async (
+    leadId
+) => {
+
+    const query = `
+
+        SELECT EXISTS(
+
+            SELECT 1
+
+            FROM lead_followups
+
+            WHERE
+
+                lead_id=$1
+
+                AND status='PENDING'
+
+                AND is_deleted=FALSE
+
+        ) AS exists;
+
+    `;
+
+    const { rows } = await pool.query(query, [leadId]);
+
+    return rows[0].exists;
 
 };
 
-export const getUpcomingFollowupsRepository = async (
-  employeeId
+export const checkLeadAssignmentRepository = async (
+    leadId,
+    employeeId
 ) => {
 
-  const query = `
-    SELECT *
+    const query = `
 
-    FROM lead_followups
+        SELECT EXISTS(
 
-    WHERE
+            SELECT 1
 
-      employee_id = $1
+            FROM lead_assignments
 
-      AND next_followup_at > NOW()
+            WHERE
 
-      AND status='PENDING'
+                lead_id=$1
 
-      AND is_deleted = FALSE
+                AND employee_id=$2
 
-    ORDER BY next_followup_at ASC;
-  `;
+        ) AS assigned;
 
-  const { rows } =
-    await pool.query(query, [
-      employeeId
+    `;
+
+    const { rows } = await pool.query(query, [
+        leadId,
+        employeeId,
     ]);
 
-  return rows;
+    return rows[0].assigned;
 
 };
 
-
-export const getMissedFollowupsRepository = async (
-  employeeId
+export const getLatestFollowupRepository = async (
+    leadId
 ) => {
 
-  const query = `
-    SELECT *
+    const query = `
 
-    FROM lead_followups
+        SELECT
 
-    WHERE
+            ${FOLLOWUP_COLUMNS}
 
-      employee_id = $1
+        FROM lead_followups lf
 
-      AND next_followup_at < NOW()
+        WHERE
 
-      AND status='PENDING'
+            lf.lead_id=$1
 
-      AND is_deleted = FALSE
+            AND lf.is_deleted=FALSE
 
-    ORDER BY next_followup_at ASC;
-  `;
+        ORDER BY
 
-  const { rows } =
-    await pool.query(query, [
-      employeeId
-    ]);
+            lf.created_at DESC
 
-  return rows;
+        LIMIT 1;
+
+    `;
+
+    const { rows } = await pool.query(query, [leadId]);
+
+    return rows[0] || null;
 
 };
-
-export const getEmployeeFollowupsRepository = async (
-  employeeId
+export const getFollowupTimelineRepository = async (
+    leadId
 ) => {
 
-  const query = `
-    SELECT
+    const query = `
 
-      lf.*,
+        SELECT
 
-      l.lead_code,
+            ${FOLLOWUP_COLUMNS},
 
-      l.full_name AS lead_name
+            ${EMPLOYEE_COLUMNS}
 
-    FROM lead_followups lf
+        FROM lead_followups lf
 
-    INNER JOIN leads l
+        ${EMPLOYEE_JOIN}
 
-      ON l.id = lf.lead_id
+        WHERE
 
-    WHERE
+            lf.lead_id=$1
 
-      lf.employee_id = $1
+            AND lf.is_deleted=FALSE
 
-      AND lf.is_deleted = FALSE
+        ORDER BY
 
-    ORDER BY lf.created_at DESC;
-  `;
+            lf.created_at DESC;
 
-  const { rows } =
-    await pool.query(query, [
-      employeeId
-    ]);
+    `;
 
-  return rows;
+    const { rows } = await pool.query(query, [leadId]);
+
+    return rows;
 
 };
 
 export const getFollowupStatisticsRepository =
 async () => {
 
-  const query = `
+    const query = `
+
     SELECT
 
-      COUNT(*) AS total,
-
-      COUNT(*) FILTER (
+    COUNT(*) FILTER(
         WHERE status='PENDING'
-      ) AS pending,
+    ) AS pending,
 
-      COUNT(*) FILTER (
+    COUNT(*) FILTER(
         WHERE status='COMPLETED'
-      ) AS completed,
+    ) AS completed,
 
-      COUNT(*) FILTER (
-        WHERE DATE(next_followup_at)=CURRENT_DATE
-      ) AS today,
+    COUNT(*) FILTER(
+        WHERE status='MISSED'
+    ) AS missed,
 
-      COUNT(*) FILTER (
-        WHERE next_followup_at < NOW()
-
+    COUNT(*) FILTER(
+        WHERE next_followup_at<CURRENT_TIMESTAMP
         AND status='PENDING'
-      ) AS overdue
+    ) AS overdue
 
     FROM lead_followups
 
-    WHERE is_deleted = FALSE;
-  `;
+    WHERE is_deleted=FALSE;
 
-  const { rows } =
-    await pool.query(query);
+    `;
 
-  return rows[0];
+    const { rows } = await pool.query(query);
+
+    return rows[0];
 
 };
+
+export const getCounsellorPerformanceRepository =
+async () => {
+
+    const query = `
+
+SELECT
+
+e.id,
+
+e.full_name,
+
+COUNT(lf.id) total,
+
+COUNT(*) FILTER(
+WHERE lf.status='COMPLETED'
+) completed,
+
+COUNT(*) FILTER(
+WHERE lf.status='PENDING'
+) pending
+
+FROM employees e
+
+LEFT JOIN lead_followups lf
+
+ON lf.employee_id=e.id
+
+AND lf.is_deleted=FALSE
+
+GROUP BY
+
+e.id,
+e.full_name
+
+ORDER BY
+
+completed DESC;
+
+`;
+
+    const { rows } = await pool.query(query);
+
+    return rows;
+
+};
+
+export const getDailyFollowupTrendRepository = async (
+    days = 30
+) => {
+
+    const query = `
+
+        SELECT
+
+            DATE(created_at) AS date,
+
+            COUNT(*) AS total,
+
+            COUNT(*) FILTER (
+                WHERE status = 'COMPLETED'
+            ) AS completed,
+
+            COUNT(*) FILTER (
+                WHERE status = 'PENDING'
+            ) AS pending
+
+        FROM lead_followups
+
+        WHERE
+
+            is_deleted = FALSE
+
+            AND created_at >= CURRENT_DATE - ($1::INTEGER - 1)
+
+        GROUP BY DATE(created_at)
+
+        ORDER BY DATE(created_at);
+
+    `;
+
+    const { rows } = await pool.query(query, [days]);
+    
+    return rows;
+
+};
+
+export const getOutcomeAnalyticsRepository = async () => {
+
+    const query = `
+
+        SELECT
+
+            outcome,
+
+            COUNT(*) AS total
+
+        FROM lead_followups
+
+        WHERE
+
+            is_deleted = FALSE
+
+        GROUP BY outcome
+
+        ORDER BY total DESC;
+
+    `;
+
+    const { rows } = await pool.query(query);
+
+    return rows;
+
+};
+
+export const getPriorityAnalyticsRepository = async () => {
+
+    const query = `
+
+        SELECT
+
+            priority,
+
+            COUNT(*) total
+
+        FROM lead_followups
+
+        WHERE
+
+            is_deleted = FALSE
+
+        GROUP BY priority
+
+        ORDER BY priority;
+
+    `;
+
+    const { rows } = await pool.query(query);
+
+    return rows;
+
+};
+
+export const getConversionAnalyticsRepository = async () => {
+
+    const query = `
+
+        SELECT
+
+            outcome,
+
+            COUNT(*) total
+
+        FROM lead_followups
+
+        WHERE
+
+            is_deleted = FALSE
+
+            AND outcome IS NOT NULL
+
+        GROUP BY outcome
+
+        ORDER BY total DESC;
+
+    `;
+
+    const { rows } = await pool.query(query);
+
+    return rows;
+
+};
+
+export const bulkCompleteFollowupsRepository = async (
+    client,
+    followupIds,
+    outcome,
+    remarks,
+    updatedBy
+) => {
+
+    const query = `
+
+        UPDATE lead_followups
+
+        SET
+
+            status = 'COMPLETED',
+
+            outcome = $2,
+
+            remarks = $3,
+
+            updated_by = $4,
+
+            updated_at = CURRENT_TIMESTAMP
+
+        WHERE
+
+            id = ANY($1::int[])
+
+            AND is_deleted = FALSE
+
+        RETURNING id;
+
+    `;
+
+    const { rows } = await client.query(query, [
+
+        followupIds,
+
+        outcome,
+
+        remarks,
+
+        updatedBy,
+
+    ]);
+
+    return rows;
+
+};
+
+export const bulkSoftDeleteFollowupsRepository = async (
+    client,
+    followupIds,
+    deletedBy
+) => {
+
+    const query = `
+
+        UPDATE lead_followups
+
+        SET
+
+            is_deleted = TRUE,
+
+            deleted_by = $2,
+
+            deleted_at = CURRENT_TIMESTAMP,
+
+            updated_by = $2,
+
+            updated_at = CURRENT_TIMESTAMP
+
+        WHERE
+
+            id = ANY($1::int[])
+
+            AND is_deleted = FALSE
+
+        RETURNING id;
+
+    `;
+
+    const { rows } = await client.query(query, [
+
+        followupIds,
+
+        deletedBy,
+
+    ]);
+
+    return rows;
+
+};
+
+export const bulkRestoreFollowupsRepository = async (
+    client,
+    followupIds,
+    updatedBy
+) => {
+
+    const query = `
+
+        UPDATE lead_followups
+
+        SET
+
+            is_deleted = FALSE,
+
+            deleted_at = NULL,
+
+            deleted_by = NULL,
+
+            updated_by = $2,
+
+            updated_at = CURRENT_TIMESTAMP
+
+        WHERE
+
+            id = ANY($1::int[])
+
+        RETURNING id;
+
+    `;
+
+    const { rows } = await client.query(query, [
+
+        followupIds,
+
+        updatedBy,
+
+    ]);
+
+    return rows;
+
+};
+
+export const bulkAssignFollowupsRepository = async (
+    client,
+    followupIds,
+    employeeId,
+    updatedBy
+) => {
+
+    const query = `
+
+        UPDATE lead_followups
+
+        SET
+
+            employee_id = $2,
+
+            updated_by = $3,
+
+            updated_at = CURRENT_TIMESTAMP
+
+        WHERE
+
+            id = ANY($1::int[])
+
+            AND is_deleted = FALSE
+
+        RETURNING id;
+
+    `;
+
+    const { rows } = await client.query(query, [
+
+        followupIds,
+
+        employeeId,
+
+        updatedBy,
+
+    ]);
+
+    return rows;
+
+};
+
 

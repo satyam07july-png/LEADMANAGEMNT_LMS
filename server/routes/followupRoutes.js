@@ -1,103 +1,132 @@
-import express from "express";
-
-import verifyToken from "../middleware/authMiddleware.js";
+import { Router } from "express";
 
 import {
   createFollowup,
+  getAllFollowups,
+  getFollowupById,
   updateFollowup,
   completeFollowup,
   rescheduleFollowup,
   deleteFollowup,
-  getLeadFollowups,
-  getPendingFollowups,
-  getTodayFollowups,
-  getOverdueFollowups,
-  getCompletedFollowups,
-  getUpcomingFollowups,
-  getMissedFollowups,
-  getEmployeeFollowups,
+  restoreFollowup,
   getFollowupStatistics,
-} from "../controllers/followupController.js";
-const router = express.Router();
+  getLeadTimeline, 
+  bulkCompleteFollowups,
+  bulkDeleteFollowups,
+  bulkRestoreFollowups,
+  bulkAssignFollowups,
+} from "../controllers/followupcontroller.js";
 
-/**
- * ============================================
- * Create Follow-up
- * ============================================
- */
+import authMiddleware from "../middleware/authmiddleware.js";
+
+import roleMiddleware from "../middleware/rolemiddleware.js";
+
+const router = Router();
+
 router.post(
-    "/",
-    verifyToken,
-    createFollowup
+  "/",
+  authMiddleware,
+  roleMiddleware("ADMIN", "COUNSELLOR"),
+  createFollowup
 );
 
-/**
- * ============================================
- * Lead Follow-up History
- * ============================================
- */
 router.get(
-    "/lead/:leadId",
-    verifyToken,
-    getLeadFollowups
+  "/",
+  authMiddleware,
+  getAllFollowups
 );
 
-/**
- * ============================================
- * Pending Follow-ups
- * ============================================
- */
 router.get(
-    "/pending",
-    verifyToken,
-    getPendingFollowups
+  "/statistics",
+  authMiddleware,
+  getFollowupStatistics
 );
 
-/**
- * ============================================
- * Today's Follow-ups
- * ============================================
- */
 router.get(
-    "/today",
-    verifyToken,
-    getTodayFollowups
+  "/timeline/:leadId",
+  authMiddleware,
+  getLeadTimeline
 );
 
-/**
- * ============================================
- * Overdue Follow-ups
- * ============================================
- */
 router.get(
-    "/overdue",
-    verifyToken,
-    getOverdueFollowups
+  "/statistics",
+  authMiddleware,
+  getFollowupStatistics
+);
+
+router.get(
+  "/timeline/:leadId",
+  authMiddleware,
+  getLeadTimeline
+);
+
+router.get(
+  "/:id",
+  authMiddleware,
+  getFollowupById
 );
 
 router.put(
-    "/:id",
-    verifyToken,
-    updateFollowup
+  "/:id",
+  authMiddleware,
+  roleMiddleware("ADMIN", "COUNSELLOR"),
+  updateFollowup
 );
-
 
 router.patch(
   "/:id/complete",
-  verifyToken,
+  authMiddleware,
+  roleMiddleware("ADMIN", "COUNSELLOR"),
   completeFollowup
 );
 
 router.patch(
   "/:id/reschedule",
-  verifyToken,
+  authMiddleware,
+  roleMiddleware("ADMIN", "COUNSELLOR"),
   rescheduleFollowup
 );
 
 router.delete(
   "/:id",
-  verifyToken,
+  authMiddleware,
+  roleMiddleware("ADMIN"),
   deleteFollowup
+);
+
+router.patch(
+  "/:id/restore",
+  authMiddleware,
+  roleMiddleware("ADMIN"),
+  restoreFollowup
+);
+
+router.patch(
+  "/bulk/complete",
+  authMiddleware,
+  roleMiddleware("ADMIN", "COUNSELLOR"),
+  bulkCompleteFollowups
+);
+
+router.patch(
+  "/bulk/restore",
+  authMiddleware,
+  roleMiddleware("ADMIN"),
+  bulkRestoreFollowups
+);
+
+router.patch(
+  "/bulk/assign",
+  authMiddleware,
+  roleMiddleware("ADMIN"),
+  bulkAssignFollowups
+);
+
+router.delete(
+  "/bulk",
+  authMiddleware,
+  roleMiddleware("ADMIN"),
+  bulkDeleteFollowups
 );
 
 export default router;

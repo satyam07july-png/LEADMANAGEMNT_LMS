@@ -153,3 +153,4 @@ export const updateEmployeeValidator = [
     ])
     .withMessage("Invalid status."),
 ];
+

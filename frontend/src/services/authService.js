@@ -25,3 +25,17 @@ export const getProfile = async () => {
   return response.data;
 
 };
+
+export const changePassword = async (payload) => {
+
+    const response = await axiosInstance.put(
+
+        "/auth/change-password",
+
+        payload
+
+    );
+
+    return response.data;
+
+};

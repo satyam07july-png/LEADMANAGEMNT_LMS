@@ -2,98 +2,123 @@ import { body, param } from "express-validator";
 
 export const createLeadValidator = [
 
-  body("full_name")
-    .trim()
-    .notEmpty()
-    .withMessage("Full name is required.")
-    .isLength({ min: 3, max: 150 }),
+body("alternate_mobile")
+  .optional()
+  .trim()
+  .isLength({ min: 10, max: 15 })
+  .withMessage("Alternate mobile is invalid."),
 
-  body("email")
-    .optional()
-    .isEmail()
-    .withMessage("Invalid email."),
+body("country")
+  .optional()
+  .trim()
+  .isLength({ max: 100 }),
 
-  body("mobile")
-    .trim()
-    .notEmpty()
-    .withMessage("Mobile is required.")
-    .isLength({ min: 10, max: 15 }),
+body("state")
+  .optional()
+  .trim()
+  .isLength({ max: 100 }),
 
-  body("course_id")
-    .optional()
-    .isInt()
-    .withMessage("Invalid course."),
+body("city")
+  .optional()
+  .trim()
+  .isLength({ max: 100 }),
 
-  body("assigned_to")
-    .optional()
-    .isInt()
-    .withMessage("Invalid employee."),
+body("interested_course")
+  .optional()
+  .trim()
+  .isLength({ max: 150 }),
 
-  body("source")
-    .notEmpty()
-    .withMessage("Lead source is required."),
+body("preferred_centre")
+  .optional()
+  .trim()
+  .isLength({ max: 150 }),
 
-  body("status")
-    .optional()
-    .isIn([
-      "NEW",
-      "CONTACTED",
-      "FOLLOW_UP",
-      "QUALIFIED",
-      "ADMISSION_DONE",
-      "LOST",
-    ]),
+body("platform")
+  .optional()
+  .isIn([
+    "GOOGLE",
+    "META",
+    "WEBSITE",
+    "WHATSAPP",
+    "IMPORT",
+    "MANUAL",
+  ])
+  .withMessage("Invalid platform."),
 
-  body("priority")
-    .optional()
-    .isIn([
-      "LOW",
-      "MEDIUM",
-      "HIGH",
-    ]),
+body("landing_page_url")
+  .optional()
+  .isURL()
+  .withMessage("Invalid landing page URL."),
+
+body("utm_source")
+  .optional()
+  .trim()
+  .isLength({ max: 150 }),
+
+body("utm_medium")
+  .optional()
+  .trim()
+  .isLength({ max: 150 }),
+
+body("utm_campaign")
+  .optional()
+  .trim()
+  .isLength({ max: 150 }),
+
+body("utm_content")
+  .optional()
+  .trim()
+  .isLength({ max: 150 }),
+
+body("utm_term")
+  .optional()
+  .trim()
+  .isLength({ max: 150 }),
+
+body("external_lead_id")
+  .optional()
+  .trim()
+  .isLength({ max: 255 }),
+
+body("captured_at")
+  .optional()
+  .isISO8601()
+  .withMessage("Invalid captured date."),
+
+    
 
 ];
 
 export const updateLeadValidator = [
+body("alternate_mobile").optional(),
 
-  param("id")
-    .isInt()
-    .withMessage("Invalid lead id."),
+body("country").optional(),
 
-  body("full_name")
-    .optional()
-    .isLength({ min: 3, max: 150 }),
+body("state").optional(),
 
-  body("email")
-    .optional()
-    .isEmail(),
+body("city").optional(),
 
-  body("mobile")
-    .optional()
-    .isLength({ min: 10, max: 15 }),
+body("interested_course").optional(),
 
-  body("status")
-    .optional()
-    .isIn([
-      "NEW",
-      "CONTACTED",
-      "FOLLOW_UP",
-      "QUALIFIED",
-      "ADMISSION_DONE",
-      "LOST",
-    ]),
+body("preferred_centre").optional(),
 
-];
+body("platform").optional(),
 
-export const assignLeadValidator = [
+body("landing_page_url").optional(),
 
-  param("id")
-    .isInt()
-    .withMessage("Invalid lead id."),
+body("utm_source").optional(),
 
-  body("employee_id")
-    .isInt()
-    .withMessage("Employee id is required."),
+body("utm_medium").optional(),
+
+body("utm_campaign").optional(),
+
+body("utm_content").optional(),
+
+body("utm_term").optional(),
+
+body("external_lead_id").optional(),
+
+body("captured_at").optional(),
 
 ];
 
@@ -128,5 +153,37 @@ export const addLeadNoteValidator = [
       min: 3,
       max: 1000,
     }),
+
+];
+
+// =====================================================
+// Bulk Lead Assignment Validator
+// =====================================================
+
+export const assignBulkLeadValidator = [
+
+  body("lead_ids")
+    .isArray({ min: 1 })
+    .withMessage("At least one lead must be selected."),
+
+  body("lead_ids.*")
+    .isInt()
+    .withMessage("Invalid lead id."),
+
+  body("employee_id")
+    .isInt()
+    .withMessage("Employee is required."),
+
+];
+
+export const assignLeadValidator = [
+
+  param("id")
+    .isInt()
+    .withMessage("Invalid lead id."),
+
+  body("employee_id")
+    .isInt()
+    .withMessage("Employee id is required."),
 
 ];

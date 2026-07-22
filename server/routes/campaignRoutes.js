@@ -23,6 +23,7 @@ import {
   deleteCampaign,
   restoreCampaign,
   getCampaignStatistics,
+  getCampaignAnalytics,
 
 } from "../controllers/campaignController.js";
 
@@ -134,6 +135,27 @@ router.patch(
   validate,
 
   restoreCampaign
+
+);
+
+/**
+ * =====================================================
+ * Campaign Analytics
+ * Must be before /:id route
+ * =====================================================
+ */
+
+router.get(
+
+  "/:id/analytics",
+
+  authMiddleware,
+
+  campaignIdValidator,
+
+  validate,
+
+  getCampaignAnalytics
 
 );
 

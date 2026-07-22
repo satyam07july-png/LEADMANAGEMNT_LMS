@@ -1,22 +1,39 @@
 import axiosInstance from "../api/axiosInstance";
 
 // ===============================
-// Single Lead Assignment
+// Get All Leads
 // ===============================
 
-export const assignLead = async (
-  leadId,
-  employeeId
-) => {
+export const getLeads = async (params = {}) => {
 
-  const response = await axiosInstance.patch(
+  const response = await axiosInstance.get("/leads", {
+    params,
+  });
 
-    `/leads/${leadId}/assign`,
+  return response.data;
 
-    {
-      employee_id: employeeId,
-    }
+};
 
+// ===============================
+// Get Lead By Id
+// ===============================
+
+export const getLeadById = async (id) => {
+
+  const response = await axiosInstance.get(`/leads/${id}`);
+
+  return response.data;
+
+};
+
+// ===============================
+// Get Lead Statistics
+// ===============================
+
+export const getLeadStats = async () => {
+
+  const response = await axiosInstance.get(
+    "/leads/statistics"
   );
 
   return response.data;
@@ -24,19 +41,47 @@ export const assignLead = async (
 };
 
 // ===============================
-// Bulk Lead Assignment
+// Delete Lead
 // ===============================
 
-export const assignBulkLeads = async (
-  payload
+export const deleteLead = async (id) => {
+
+  const response = await axiosInstance.delete(
+    `/leads/${id}`
+  );
+
+  return response.data;
+
+};
+
+// ===============================
+// Restore Lead
+// ===============================
+
+export const restoreLead = async (id) => {
+
+  const response = await axiosInstance.patch(
+    `/leads/${id}/restore`
+  );
+
+  return response.data;
+
+};
+
+// ===============================
+// Update Lead Status
+// ===============================
+
+export const updateLeadStatus = async (
+  id,
+  status
 ) => {
 
-  const response = await axiosInstance.post(
-
-    "/leads/assign-bulk",
-
-    payload
-
+  const response = await axiosInstance.patch(
+    `/leads/${id}/status`,
+    {
+      status,
+    }
   );
 
   return response.data;

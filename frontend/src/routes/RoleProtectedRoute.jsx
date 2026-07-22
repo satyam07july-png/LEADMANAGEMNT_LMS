@@ -1,37 +1,31 @@
-import {
-Navigate
-} from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
-import {
-useAuth
-} from "../context/AuthContext";
+const RoleProtectedRoute = ({ roles }) => {
+  const { user, loading } = useAuth();
 
-const RoleProtectedRoute=({
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
-children,
+  if (!user) {
+    return <Navigate to="/" replace />;
+  }
 
-roles
+  if (!roles.includes(user.role)) {
 
-})=>{
+    if (user.role === "ADMIN") {
+      return <Navigate to="/dashboard" replace />;
+    }
 
-const{
+    if (user.role === "COUNSELLOR") {
+      return <Navigate to="/employee/dashboard" replace />;
+    }
 
-user
+    return <Navigate to="/" replace />;
+  }
 
-}=useAuth();
-
-if(!roles.includes(user.role)){
-
-return<Navigate
-
-to="/unauthorized"
-
-/>
-
-}
-
-return children;
-
+  return <Outlet />;
 };
 
 export default RoleProtectedRoute;

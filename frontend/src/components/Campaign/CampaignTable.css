@@ -1,0 +1,639 @@
+/* ==========================================================
+   CAMPAIGN TABLE
+========================================================== */
+
+.campaign-table-container {
+
+    background: #ffffff;
+
+    border: 1px solid #e2e8f0;
+
+    border-radius: 18px;
+
+    overflow: hidden;
+
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+
+}
+
+
+/* ==========================================================
+   TABLE
+========================================================== */
+
+.campaign-table {
+
+    width: 100%;
+
+    border-collapse: collapse;
+
+}
+
+.campaign-table thead {
+
+    background: #f8fafc;
+
+}
+
+.campaign-table th {
+
+    padding: 18px;
+
+    font-size: 13px;
+
+    font-weight: 700;
+
+    text-transform: uppercase;
+
+    color: #64748b;
+
+    border-bottom: 1px solid #e2e8f0;
+
+    white-space: nowrap;
+
+}
+
+.campaign-table td {
+
+    padding: 18px;
+
+    font-size: 14px;
+
+    color: #334155;
+
+    border-bottom: 1px solid #f1f5f9;
+
+    vertical-align: middle;
+
+}
+
+.campaign-table tbody tr {
+
+    transition: .25s;
+
+}
+
+.campaign-table tbody tr:hover {
+
+    background: #f8fbff;
+
+}
+
+
+/* ==========================================================
+   TABLE HEADING
+========================================================== */
+
+.table-heading {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 6px;
+
+    cursor: pointer;
+
+}
+
+
+/* ==========================================================
+   CHECKBOX
+========================================================== */
+
+.campaign-table input[type="checkbox"] {
+
+    width: 16px;
+
+    height: 16px;
+
+    cursor: pointer;
+
+}
+
+
+/* ==========================================================
+   CAMPAIGN NAME
+========================================================== */
+
+.campaign-name {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 4px;
+
+}
+
+.campaign-name h4 {
+
+    margin: 0;
+
+    font-size: 15px;
+
+    font-weight: 700;
+
+    color: #0f172a;
+
+}
+
+.campaign-name span {
+
+    font-size: 12px;
+
+    color: #94a3b8;
+
+}
+
+
+/* ==========================================================
+   PLATFORM BADGES
+========================================================== */
+
+.platform-badge {
+
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    padding: 6px 14px;
+
+    border-radius: 999px;
+
+    font-size: 12px;
+
+    font-weight: 600;
+
+}
+
+/* Meta */
+
+.platform-meta {
+
+    background: #dbeafe;
+
+    color: #2563eb;
+
+}
+
+/* Google */
+
+.platform-google {
+
+    background: #fee2e2;
+
+    color: #dc2626;
+
+}
+
+/* Website */
+
+.platform-website {
+
+    background: #e2e8f0;
+
+    color: #475569;
+
+}
+
+/* Instagram */
+
+.platform-instagram {
+
+    background: #fce7f3;
+
+    color: #db2777;
+
+}
+
+/* WhatsApp */
+
+.platform-whatsapp {
+
+    background: #dcfce7;
+
+    color: #16a34a;
+
+}
+
+/* Referral */
+
+.platform-referral {
+
+    background: #eef2ff;
+
+    color: #4338ca;
+
+}
+
+/* Walk In */
+
+.platform-walkin {
+
+    background: #fef3c7;
+
+    color: #ca8a04;
+
+}
+
+/* Default */
+
+.platform-default {
+
+    background: #f1f5f9;
+
+    color: #64748b;
+
+}
+
+
+/* ==========================================================
+   STATUS BADGES
+========================================================== */
+
+.status-badge {
+
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    padding: 6px 14px;
+
+    border-radius: 999px;
+
+    font-size: 12px;
+
+    font-weight: 700;
+
+}
+
+.status-active {
+
+    background: #dcfce7;
+
+    color: #15803d;
+
+}
+
+.status-paused {
+
+    background: #fef3c7;
+
+    color: #ca8a04;
+
+}
+
+.status-completed {
+
+    background: #e2e8f0;
+
+    color: #475569;
+
+}
+
+.status-default {
+
+    background: #f1f5f9;
+
+    color: #64748b;
+
+}
+
+
+/* ==========================================================
+   BUDGET
+========================================================== */
+
+.budget {
+
+    font-size: 15px;
+
+    font-weight: 700;
+
+    color: #0f172a;
+
+}
+
+
+/* ==========================================================
+   ACTION BUTTONS
+========================================================== */
+
+.campaign-actions {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+
+}
+
+.campaign-actions button {
+
+    width: 38px;
+
+    height: 38px;
+
+    border: none;
+
+    border-radius: 10px;
+
+    background: #f8fafc;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    cursor: pointer;
+
+    transition: .25s;
+
+}
+
+.campaign-actions button:hover {
+
+    transform: translateY(-2px);
+
+}
+
+.view-btn:hover {
+
+    background: #dbeafe;
+
+    color: #2563eb;
+
+}
+
+.edit-btn:hover {
+
+    background: #dcfce7;
+
+    color: #16a34a;
+
+}
+
+.delete-btn:hover {
+
+    background: #fee2e2;
+
+    color: #dc2626;
+
+}
+
+
+/* ==========================================================
+   FOOTER
+========================================================== */
+
+.campaign-table-footer {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    padding: 18px 24px;
+
+    background: #ffffff;
+
+    border-top: 1px solid #e2e8f0;
+
+}
+
+.campaign-table-footer span {
+
+    font-size: 14px;
+
+    color: #64748b;
+
+}
+
+.campaign-table-footer strong {
+
+    color: #0f172a;
+
+}
+
+
+/* ==========================================================
+   EMPTY STATE
+========================================================== */
+
+.campaign-empty-state {
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    justify-content: center;
+
+    height: 300px;
+
+    background: #ffffff;
+
+    border-radius: 18px;
+
+    border: 1px solid #e2e8f0;
+
+}
+
+.campaign-empty-state h3 {
+
+    margin-bottom: 8px;
+
+    color: #0f172a;
+
+}
+
+.campaign-empty-state p {
+
+    color: #64748b;
+
+}
+
+
+/* ==========================================================
+   LOADING
+========================================================== */
+
+.campaign-table-loading {
+
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+    height: 250px;
+
+    background: #ffffff;
+
+    border-radius: 18px;
+
+    border: 1px solid #e2e8f0;
+
+    color: #64748b;
+
+    font-size: 15px;
+
+}
+
+
+/* ==========================================================
+   RESPONSIVE
+========================================================== */
+
+@media (max-width: 992px) {
+
+    .campaign-table-container {
+
+        overflow-x: auto;
+
+    }
+
+    .campaign-table {
+
+        min-width: 1100px;
+
+    }
+
+}
+
+@media (max-width: 768px) {
+
+    .campaign-table-footer {
+
+        flex-direction: column;
+
+        gap: 12px;
+
+        align-items: flex-start;
+
+    }
+
+}
+
+/* ==========================================================
+   PAGINATION
+========================================================== */
+
+.campaign-pagination{
+
+    margin-top:20px;
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    padding:18px 24px;
+
+    border-radius:18px;
+
+    background:#ffffff;
+
+    border:1px solid #e2e8f0;
+
+}
+
+.pagination-info{
+
+    color:#64748b;
+
+    font-size:14px;
+
+}
+
+.pagination-info strong{
+
+    color:#0f172a;
+
+}
+
+.pagination-actions{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:14px;
+
+}
+
+.pagination-actions button{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:8px;
+
+    padding:10px 16px;
+
+    border:none;
+
+    border-radius:10px;
+
+    background:#2563eb;
+
+    color:white;
+
+    cursor:pointer;
+
+    transition:.25s;
+
+}
+
+.pagination-actions button:hover{
+
+    background:#1d4ed8;
+
+}
+
+.pagination-actions button:disabled{
+
+    background:#cbd5e1;
+
+    cursor:not-allowed;
+
+}
+
+.pagination-actions span{
+
+    font-size:14px;
+
+    color:#475569;
+
+}
+
+.pagination-actions strong{
+
+    color:#0f172a;
+
+}
+
+@media(max-width:768px){
+
+.campaign-pagination{
+
+    flex-direction:column;
+
+    gap:16px;
+
+    align-items:flex-start;
+
+}
+
+}

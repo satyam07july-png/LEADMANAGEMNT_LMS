@@ -27,6 +27,7 @@ import requestId from "./middleware/requestId.js";
 import requestLogger from "./middleware/requestLogger.js";
 import notFound from "./middleware/notFound.js";
 import errorHandler from "./middleware/errorHandler.js";
+import employeePortalRoutes from "./routes/employeePortal.routes.js";
 
 const app = express();
 
@@ -114,6 +115,7 @@ app.use("/api/campaigns", campaignRoutes);
 app.use("/api/departments", departmentRoutes);
 
 app.use("/api/employees", employeeRoutes);
+app.use("/api/employee", employeePortalRoutes);
 
 app.use("/api/leads", leadRoutes);
 

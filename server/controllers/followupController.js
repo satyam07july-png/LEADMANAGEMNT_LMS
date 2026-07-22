@@ -1,525 +1,280 @@
-import {
+import asyncHandler from "../utils/asyncHandler.js";
 
+import {
   createFollowupService,
+  getAllFollowupsService,
+  getFollowupByIdService,
   updateFollowupService,
   completeFollowupService,
   rescheduleFollowupService,
   deleteFollowupService,
-
-  getLeadFollowupsService,
-  getPendingFollowupsService,
-  getTodayFollowupsService,
-  getOverdueFollowupsService,
-
-  getCompletedFollowupsService,
-  getUpcomingFollowupsService,
-  getMissedFollowupsService,
-  getEmployeeFollowupsService,
+  restoreFollowupService,
   getFollowupStatisticsService,
-
-} from "../services/followupService.js";
-
+  getLeadTimelineService,
+  bulkCompleteFollowupsService,
+  bulkDeleteFollowupsService,
+  bulkRestoreFollowupsService,
+  bulkAssignFollowupsService,
+} from "../services/followupservice.js";
 
 
 /**
- * =====================================================
+ * ============================================================================
  * Create Follow-up
- * =====================================================
+ * ============================================================================
  */
+export const createFollowup = asyncHandler(
+  async (req, res) => {
 
-export const createFollowup = async (
-    req,
-    res,
-    next
-) => {
+    const followup =
+      await createFollowupService(
+        req.body,
+        req.user
+      );
 
-    try {
+    res.status(201).json({
+      success: true,
+      message: "Follow-up created successfully.",
+      data: followup,
+    });
 
-        const followup = await createFollowupService({
-
-            ...req.body,
-
-            created_by: req.user.id,
-
-        });
-
-        return res.status(201).json({
-
-            success: true,
-
-            message: "Follow-up created successfully.",
-
-            data: followup,
-
-        });
-
-    } catch (error) {
-
-        next(error);
-
-    }
-
-};
+  }
+);
 
 /**
- * =====================================================
- * Lead Follow-up History
- * =====================================================
+ * ============================================================================
+ * Get All Follow-ups
+ * ============================================================================
  */
-
-export const getLeadFollowups = async (
-    req,
-    res,
-    next
-) => {
-
-    try {
-
-        const { leadId } = req.params;
-
-        const page =
-            Number(req.query.page) || 1;
-
-        const limit =
-            Number(req.query.limit) || 20;
-
-        const data =
-            await getLeadFollowupsService(
-
-                leadId,
-
-                page,
-
-                limit
-
-            );
-
-        return res.status(200).json({
-
-            success: true,
-
-            data,
-
-        });
-
-    } catch (error) {
-
-        next(error);
-
-    }
-
-};
-
-/**
- * =====================================================
- * Pending Follow-ups
- * =====================================================
- */
-
-export const getPendingFollowups = async (
-    req,
-    res,
-    next
-) => {
-
-    try {
-
-        const data =
-            await getPendingFollowupsService(
-                req.user.employee_id
-            );
-
-        return res.status(200).json({
-
-            success: true,
-
-            data,
-
-        });
-
-    } catch (error) {
-
-        next(error);
-
-    }
-
-};
-
-/**
- * =====================================================
- * Today's Follow-ups
- * =====================================================
- */
-
-export const getTodayFollowups = async (
-    req,
-    res,
-    next
-) => {
-
-    try {
-
-        const data =
-            await getTodayFollowupsService(
-                req.user.employee_id
-            );
-
-        return res.status(200).json({
-
-            success: true,
-
-            data,
-
-        });
-
-    } catch (error) {
-
-        next(error);
-
-    }
-
-};
-
-/**
- * =====================================================
- * Overdue Follow-ups
- * =====================================================
- */
-
-export const getOverdueFollowups = async (
-    req,
-    res,
-    next
-) => {
-
-    try {
-
-        const data =
-            await getOverdueFollowupsService(
-                req.user.employee_id
-            );
-
-        return res.status(200).json({
-
-            success: true,
-
-            data,
-
-        });
-
-    } catch (error) {
-
-        next(error);
-
-    }
-
-};
-
-export const updateFollowup = async (
-    req,
-    res,
-    next
-) => {
-
-    try {
-
-        const data =
-            await updateFollowupService(
-
-                req.params.id,
-
-                {
-
-                    ...req.body,
-
-                    updated_by: req.user.id,
-
-                }
-
-            );
-
-        return res.status(200).json({
-
-            success: true,
-
-            message: "Follow-up updated successfully.",
-
-            data,
-
-        });
-
-    } catch (error) {
-
-        next(error);
-
-    }
-
-};
-
-export const completeFollowup = async (
-  req,
-  res,
-  next
-) => {
-
-  try {
-
-    const data =
+export const getAllFollowups = asyncHandler(
+  async (req, res) => {
+
+    const followups =
+      await getAllFollowupsService(
+        req.query
+      );
+
+    res.status(200).json({
+      success: true,
+      message: "Follow-ups fetched successfully.",
+      data: followups,
+    });
+
+  }
+);
+
+export const getFollowupById = asyncHandler(
+  async (req, res) => {
+
+    const followup =
+      await getFollowupByIdService(
+        req.params.id,
+        req.user
+      );
+
+    res.status(200).json({
+      success: true,
+      message: "Follow-up fetched successfully.",
+      data: followup,
+    });
+
+  }
+);
+
+export const updateFollowup = asyncHandler(
+  async (req, res) => {
+
+    const followup =
+      await updateFollowupService(
+        req.params.id,
+        req.body,
+        req.user
+      );
+
+    res.status(200).json({
+      success: true,
+      message: "Follow-up updated successfully.",
+      data: followup,
+    });
+
+  }
+);
+
+export const completeFollowup = asyncHandler(
+  async (req, res) => {
+
+    const followup =
       await completeFollowupService(
-
         req.params.id,
-
-        req.user.id,
-
-        req.body.outcome,
-
-        req.body.remarks
-
+        req.body,
+        req.user
       );
 
     res.status(200).json({
-
       success: true,
-
       message: "Follow-up completed successfully.",
-
-      data,
-
+      data: followup,
     });
 
-  } catch (error) {
-
-    next(error);
-
   }
+);
 
-};
+export const rescheduleFollowup = asyncHandler(
+  async (req, res) => {
 
-export const rescheduleFollowup = async (
-  req,
-  res,
-  next
-) => {
-
-  try {
-
-    const data =
+    const followup =
       await rescheduleFollowupService(
-
         req.params.id,
-
-        req.body.next_followup_at,
-
-        req.body.remarks,
-
-        req.user.id
-
+        req.body,
+        req.user
       );
 
     res.status(200).json({
-
       success: true,
-
       message: "Follow-up rescheduled successfully.",
-
-      data,
-
+      data: followup,
     });
 
-  } catch (error) {
-
-    next(error);
-
   }
+);
 
-}
+export const deleteFollowup = asyncHandler(
+  async (req, res) => {
 
-export const deleteFollowup = async (
-  req,
-  res,
-  next
-) => {
-
-  try {
-
-    await deleteFollowupService(
-
-      req.params.id,
-
-      req.user.id
-
-    );
+    const followup =
+      await deleteFollowupService(
+        req.params.id,
+        req.user
+      );
 
     res.status(200).json({
-
       success: true,
-
-      message: "Follow-up deleted successfully."
-
+      message: "Follow-up deleted successfully.",
+      data: followup,
     });
 
-  } catch (error) {
-
-    next(error);
-
   }
+);
 
-};
+export const restoreFollowup = asyncHandler(
+  async (req, res) => {
 
-
-export const getCompletedFollowups = async (
-  req,
-  res,
-  next
-) => {
-
-  try {
-
-    const page =
-      Number(req.query.page) || 1;
-
-    const limit =
-      Number(req.query.limit) || 20;
-
-    const data =
-      await getCompletedFollowupsService(
-
-        req.user.employee_id,
-
-        page,
-
-        limit
-
+    const followup =
+      await restoreFollowupService(
+        req.params.id,
+        req.user
       );
 
-    return res.status(200).json({
-
+    res.status(200).json({
       success: true,
-
-      data,
-
+      message: "Follow-up restored successfully.",
+      data: followup,
     });
 
-  } catch (error) {
-
-    next(error);
-
   }
+);
 
-};
+export const getFollowupStatistics = asyncHandler(
+  async (req, res) => {
 
-export const getUpcomingFollowups = async (
-  req,
-  res,
-  next
-) => {
-
-  try {
-
-    const data =
-      await getUpcomingFollowupsService(
-        req.user.employee_id
-      );
-
-    return res.status(200).json({
-
-      success: true,
-
-      data,
-
-    });
-
-  } catch (error) {
-
-    next(error);
-
-  }
-
-};
-
-export const getMissedFollowups = async (
-  req,
-  res,
-  next
-) => {
-
-  try {
-
-    const data =
-      await getMissedFollowupsService(
-        req.user.employee_id
-      );
-
-    return res.status(200).json({
-
-      success: true,
-
-      data,
-
-    });
-
-  } catch (error) {
-
-    next(error);
-
-  }
-
-};
-
-export const getEmployeeFollowups = async (
-  req,
-  res,
-  next
-) => {
-
-  try {
-
-    const { employeeId } = req.params;
-
-    const data =
-      await getEmployeeFollowupsService(
-        employeeId
-      );
-
-    return res.status(200).json({
-
-      success: true,
-
-      data,
-
-    });
-
-  } catch (error) {
-
-    next(error);
-
-  }
-
-};
-
-export const getFollowupStatistics = async (
-  req,
-  res,
-  next
-) => {
-
-  try {
-
-    const data =
+    const statistics =
       await getFollowupStatisticsService();
 
-    return res.status(200).json({
-
+    res.status(200).json({
       success: true,
-
-      data,
-
+      message: "Follow-up statistics fetched successfully.",
+      data: statistics,
     });
 
-  } catch (error) {
+  }
+);
 
-    next(error);
+export const getLeadTimeline = asyncHandler(
+  async (req, res) => {
+
+    const timeline =
+      await getLeadTimelineService(
+        req.params.leadId
+      );
+
+    res.status(200).json({
+      success: true,
+      message: "Lead timeline fetched successfully.",
+      data: timeline,
+    });
 
   }
+);
 
-};
+export const bulkCompleteFollowups = asyncHandler(
+  async (req, res) => {
+
+    const result =
+      await bulkCompleteFollowupsService(
+        req.body,
+        req.user
+      );
+
+    res.status(200).json({
+      success: true,
+      message: "Bulk follow-ups completed successfully.",
+      data: result,
+    });
+
+  }
+);
+
+export const bulkDeleteFollowups = asyncHandler(
+  async (req, res) => {
+
+    const result =
+      await bulkDeleteFollowupsService(
+        req.body,
+        req.user
+      );
+
+    res.status(200).json({
+      success: true,
+      message: "Bulk follow-ups deleted successfully.",
+      data: result,
+    });
+
+  }
+);
+
+export const bulkRestoreFollowups = asyncHandler(
+  async (req, res) => {
+
+    const result =
+      await bulkRestoreFollowupsService(
+        req.body,
+        req.user
+      );
+
+    res.status(200).json({
+      success: true,
+      message: "Bulk follow-ups restored successfully.",
+      data: result,
+    });
+
+  }
+);
+
+export const bulkAssignFollowups = asyncHandler(
+  async (req, res) => {
+
+    const result =
+      await bulkAssignFollowupsService(
+        req.body,
+        req.user
+      );
+
+    res.status(200).json({
+      success: true,
+      message: "Bulk follow-ups assigned successfully.",
+      data: result,
+    });
+
+  }
+);
+

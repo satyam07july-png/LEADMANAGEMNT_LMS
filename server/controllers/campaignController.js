@@ -11,6 +11,10 @@ import {
   getCampaignStatisticsService,
 } from "../services/campaignService.js";
 
+import {
+  getCampaignAnalyticsService,
+} from "../services/campaignAnalytics.service.js";
+
 /**
  * =====================================================
  * Create Campaign
@@ -203,6 +207,35 @@ export const getCampaignStatistics = asyncHandler(async (req, res) => {
       statistics,
 
       "Campaign statistics fetched successfully."
+
+    )
+
+  );
+
+});
+
+/**
+ * =====================================================
+ * Campaign Analytics
+ * =====================================================
+ */
+
+export const getCampaignAnalytics = asyncHandler(async (req, res) => {
+
+  const analytics =
+    await getCampaignAnalyticsService(
+      req.params.id
+    );
+
+  return res.status(200).json(
+
+    new ApiResponse(
+
+      200,
+
+      analytics,
+
+      "Campaign analytics fetched successfully."
 
     )
 

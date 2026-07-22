@@ -1,0 +1,220 @@
+.campaign-form-page{
+
+    padding:32px;
+
+    background:#f8fafc;
+
+    min-height:100vh;
+
+}
+
+.campaign-breadcrumb{
+
+    margin-bottom:20px;
+
+}
+
+.campaign-breadcrumb a{
+
+    display:inline-flex;
+
+    align-items:center;
+
+    gap:8px;
+
+    text-decoration:none;
+
+    color:#2563eb;
+
+    font-weight:600;
+
+}
+
+.campaign-header{
+
+    margin-bottom:30px;
+
+}
+
+.campaign-header h1{
+
+    font-size:34px;
+
+    font-weight:700;
+
+    color:#0f172a;
+
+}
+
+.campaign-header p{
+
+    margin-top:8px;
+
+    color:#64748b;
+
+}
+
+.campaign-form{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:24px;
+
+}
+
+.campaign-card{
+
+    background:#fff;
+
+    border:1px solid #e5e7eb;
+
+    border-radius:16px;
+
+    padding:28px;
+
+}
+
+.campaign-card h2{
+
+    font-size:22px;
+
+    color:#0f172a;
+
+}
+
+.campaign-footer{
+
+    display:flex;
+
+    justify-content:flex-end;
+
+    gap:16px;
+
+}
+
+.btn-secondary{
+
+    padding:12px 24px;
+
+    border-radius:10px;
+
+    border:1px solid #d1d5db;
+
+    background:#fff;
+
+    cursor:pointer;
+
+}
+
+.btn-primary{
+
+    padding:12px 26px;
+
+    border:none;
+
+    border-radius:10px;
+
+    background:#2563eb;
+
+    color:#fff;
+
+    cursor:pointer;
+
+    font-weight:600;
+
+}
+
+.form-grid{
+
+    display:grid;
+
+    grid-template-columns:repeat(2,1fr);
+
+    gap:24px;
+
+}
+
+.form-group{
+
+    display:flex;
+
+    flex-direction:column;
+
+}
+
+.form-group label{
+
+    font-size:14px;
+
+    font-weight:600;
+
+    color:#334155;
+
+    margin-bottom:8px;
+
+}
+
+.form-group input,
+
+.form-group select,
+
+.form-group textarea{
+
+    padding:14px 16px;
+
+    border:1px solid #d1d5db;
+
+    border-radius:10px;
+
+    font-size:15px;
+
+    outline:none;
+
+    transition:.25s;
+
+}
+
+.form-group input:focus,
+
+.form-group select:focus,
+
+.form-group textarea:focus{
+
+    border-color:#2563eb;
+
+    box-shadow:0 0 0 3px rgba(37,99,235,.12);
+
+}
+
+.full-width{
+
+    grid-column:1/-1;
+
+}
+
+textarea{
+
+    resize:vertical;
+
+    min-height:120px;
+
+}
+
+@media(max-width:900px){
+
+.form-grid{
+
+grid-template-columns:1fr;
+
+}
+
+}
+
+.error{
+  margin-top:6px;
+  font-size:13px;
+  color:#dc2626;
+  font-weight:500;
+}

@@ -1,0 +1,164 @@
+.recent-leads-card{
+
+    background:#fff;
+    border-radius:18px;
+    padding:24px;
+
+    border:1px solid #e5e7eb;
+
+    box-shadow:0 8px 24px rgba(15,23,42,.06);
+
+}
+
+.recent-leads-header{
+
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+
+    margin-bottom:20px;
+
+}
+
+.recent-leads-header h3{
+
+    margin:0;
+
+    font-size:20px;
+
+    color:#1e293b;
+
+}
+
+.view-all-btn{
+
+    border:none;
+
+    background:#2563eb;
+
+    color:#fff;
+
+    padding:8px 18px;
+
+    border-radius:8px;
+
+    cursor:pointer;
+
+}
+
+.view-all-btn:hover{
+
+    background:#1d4ed8;
+
+}
+
+.table-responsive{
+
+    overflow:auto;
+
+}
+
+.recent-leads-table{
+
+    width:100%;
+
+    border-collapse:collapse;
+
+}
+
+.recent-leads-table th{
+
+    background:#f8fafc;
+
+    color:#64748b;
+
+    text-align:left;
+
+    padding:16px;
+
+    font-size:14px;
+
+}
+
+.recent-leads-table td{
+
+    padding:16px;
+
+    border-top:1px solid #eef2f7;
+
+    color:#334155;
+
+}
+
+.recent-leads-table tbody tr:hover{
+
+    background:#f8fafc;
+
+}
+
+.status{
+
+    padding:6px 12px;
+
+    border-radius:20px;
+
+    font-size:12px;
+
+    font-weight:600;
+
+}
+
+.status.new{
+
+    background:#dbeafe;
+    color:#2563eb;
+
+}
+
+.status.follow_up{
+
+    background:#fef3c7;
+    color:#b45309;
+
+}
+
+.status.qualified{
+
+    background:#dcfce7;
+    color:#15803d;
+
+}
+
+.status.admission{
+
+    background:#ede9fe;
+    color:#7c3aed;
+
+}
+
+.status.lost{
+
+    background:#fee2e2;
+    color:#dc2626;
+
+}
+
+.empty-row{
+
+    text-align:center;
+
+    color:#94a3b8;
+
+    padding:40px !important;
+
+}
+
+@media(max-width:768px){
+
+.recent-leads-card{
+
+    padding:18px;
+
+}
+
+}

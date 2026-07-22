@@ -8,12 +8,18 @@ import {
   updateLeadService,
   deleteLeadService,
   restoreLeadService,
+
   getLeadStatisticsService,
+
   assignLeadService,
+  assignBulkLeadsService,
+
   updateLeadStatusService,
+
   addLeadNoteService,
   getLeadNotesService,
   getLeadTimelineService,
+
 } from "../services/leadService.js";
 
 /**
@@ -376,6 +382,38 @@ export const getLeadTimeline = asyncHandler(async (req, res) => {
       timeline,
 
       "Lead timeline fetched successfully."
+
+    )
+
+  );
+
+});
+
+// =====================================================
+// Bulk Assign Leads
+// =====================================================
+
+export const assignBulkLeads = asyncHandler(async (req, res) => {
+
+  const result = await assignBulkLeadsService(
+
+    req.body,
+
+    req.user,
+
+    req
+
+  );
+
+  return res.status(200).json(
+
+    new ApiResponse(
+
+      200,
+
+      result,
+
+      "Leads assigned successfully."
 
     )
 

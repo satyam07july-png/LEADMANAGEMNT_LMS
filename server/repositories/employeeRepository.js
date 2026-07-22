@@ -25,57 +25,59 @@ export const createEmployeeRepository = async (
   const query = `
     INSERT INTO employees (
 
-      employee_code,
-      full_name,
-      email,
-      mobile,
-      department_id,
-      designation,
-      role,
-      employment_type,
-      status,
-      joining_date,
-      date_of_birth,
-      gender,
-      profile_image,
-      address,
-      emergency_contact_name,
-      emergency_contact,
-      created_by
+    user_id,
+    employee_code,
+    full_name,
+    email,
+    mobile,
+    department_id,
+    designation,
+    role,
+    employment_type,
+    status,
+    joining_date,
+    date_of_birth,
+    gender,
+    profile_image,
+    address,
+    emergency_contact_name,
+    emergency_contact,
+    created_by
 
-    )
+)
+    
 
-    VALUES (
+   VALUES (
 
-      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,
-      $11,$12,$13,$14,$15,$16,$17
+$1,$2,$3,$4,$5,$6,$7,$8,$9,
+$10,$11,$12,$13,$14,$15,$16,
+$17,$18
 
-    )
+)
 
     RETURNING *;
   `;
 
   const values = [
-
-    employee.employee_code,
-    employee.full_name,
-    employee.email,
-    employee.mobile,
-    employee.department_id,
-    employee.designation,
-    employee.role,
-    employee.employment_type,
-    employee.status,
-    employee.joining_date,
-    employee.date_of_birth,
-    employee.gender,
-    employee.profile_image,
-    employee.address,
-    employee.emergency_contact_name,
-    employee.emergency_contact,
-    employee.created_by,
-
-  ];
+ employee.user_id,
+ employee.employee_code,
+ employee.full_name,
+ employee.email,
+ employee.mobile,
+ employee.department_id,
+ employee.designation,
+ employee.role,
+ employee.employment_type,
+ employee.status,
+ employee.joining_date,
+ employee.date_of_birth,
+ employee.gender,
+ employee.profile_image,
+ employee.address,
+ employee.emergency_contact_name,
+ employee.emergency_contact,
+ employee.created_by
+]
 
   const result = await client.query(query, values);
 
@@ -87,6 +89,8 @@ export const findEmployeeByEmailRepository = async (
   email
 ) => {
 
+  console.log("Searching Email:", email);
+
   const query = `
     SELECT *
     FROM employees
@@ -95,6 +99,8 @@ export const findEmployeeByEmailRepository = async (
   `;
 
   const result = await pool.query(query, [email]);
+
+  console.log("Rows:", result.rows);
 
   return result.rows[0];
 
@@ -253,6 +259,7 @@ export const updateEmployeeRepository = async (
       updated_at = CURRENT_TIMESTAMP
 
     WHERE id = $9
+AND is_deleted = FALSE
 
     RETURNING *;
   `;
@@ -295,6 +302,7 @@ export const deleteEmployeeRepository = async (
       updated_at = CURRENT_TIMESTAMP
 
     WHERE id = $2
+AND is_deleted = FALSE
 
     RETURNING *;
   `;
@@ -328,6 +336,7 @@ export const restoreEmployeeRepository = async (
       updated_at = CURRENT_TIMESTAMP
 
     WHERE id = $2
+AND is_deleted = TRUE
 
     RETURNING *;
   `;
@@ -364,15 +373,7 @@ export const findEmployeeByMobileRepository = async (
 
 };
 
-export const getLastEmployeeCodeRepository = async (client) => {
 
-  const result = await client.query(`
-    SELECT nextval('employee_code_seq') AS sequence;
-  `);
-
-  return result.rows[0].sequence;
-
-};
 
 export const getEmployeeStatisticsRepository = async () => {
 
@@ -425,3 +426,22 @@ export const getEmployeeStatisticsRepository = async () => {
 
 };
 
+export const findEmployeeByUserIdRepository = async (userId) => {
+
+  const query = `
+    SELECT
+      id,
+      user_id,
+      employee_code,
+      full_name
+    FROM employees
+    WHERE user_id = $1
+    AND is_deleted = FALSE
+    LIMIT 1;
+  `;
+
+  const { rows } = await pool.query(query, [userId]);
+
+  return rows[0];
+
+};

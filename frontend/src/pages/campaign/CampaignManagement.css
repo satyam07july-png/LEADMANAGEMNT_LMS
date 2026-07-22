@@ -1,0 +1,573 @@
+/* ==========================================================
+   CAMPAIGN MANAGEMENT
+========================================================== */
+
+.campaign-page{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:24px;
+
+    padding:24px;
+
+    background:#f8fafc;
+
+    min-height:100%;
+
+}
+
+
+/* ==========================================================
+   HEADER
+========================================================== */
+
+.campaign-header{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    padding:24px;
+
+    border:1px solid #e2e8f0;
+
+    border-radius:20px;
+
+    background:#ffffff;
+
+    box-shadow:0 8px 25px rgba(15,23,42,.05);
+
+}
+
+.campaign-title h1{
+
+    margin:0;
+
+    font-size:28px;
+
+    font-weight:700;
+
+    color:#0f172a;
+
+}
+
+.campaign-title p{
+
+    margin-top:6px;
+
+    color:#64748b;
+
+    font-size:15px;
+
+}
+
+
+/* ==========================================================
+   BUTTON
+========================================================== */
+
+.add-campaign-btn{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:10px;
+
+    padding:12px 20px;
+
+    border:none;
+
+    border-radius:12px;
+
+    background:#2563eb;
+
+    color:#fff;
+
+    font-size:14px;
+
+    font-weight:600;
+
+    cursor:pointer;
+
+    transition:.25s;
+
+}
+
+.add-campaign-btn:hover{
+
+    background:#1d4ed8;
+
+    transform:translateY(-2px);
+
+    box-shadow:0 10px 20px rgba(37,99,235,.25);
+
+}
+
+
+/* ==========================================================
+   STATS GRID
+========================================================== */
+
+.campaign-stats{
+
+    display:grid;
+
+    grid-template-columns:repeat(4,1fr);
+
+    gap:20px;
+
+}
+
+.stat-card{
+
+    background:#fff;
+
+    border:1px solid #e2e8f0;
+
+    border-radius:18px;
+
+    padding:22px;
+
+    transition:.25s;
+
+    box-shadow:0 5px 15px rgba(15,23,42,.05);
+
+}
+
+.stat-card:hover{
+
+    transform:translateY(-4px);
+
+    box-shadow:0 15px 30px rgba(15,23,42,.08);
+
+}
+
+.stat-card h5{
+
+    margin:0;
+
+    color:#64748b;
+
+    font-size:13px;
+
+    font-weight:600;
+
+}
+
+.stat-card h2{
+
+    margin-top:12px;
+
+    color:#0f172a;
+
+    font-size:30px;
+
+    font-weight:700;
+
+}
+
+
+/* ==========================================================
+   FILTER
+========================================================== */
+
+.campaign-filter{
+
+    display:flex;
+
+    flex-wrap:wrap;
+
+    gap:15px;
+
+    padding:20px;
+
+    border-radius:18px;
+
+    background:#fff;
+
+    border:1px solid #e2e8f0;
+
+}
+
+.campaign-filter input,
+
+.campaign-filter select{
+
+    height:46px;
+
+    min-width:220px;
+
+    padding:0 15px;
+
+    border:1px solid #cbd5e1;
+
+    border-radius:12px;
+
+    outline:none;
+
+    transition:.25s;
+
+}
+
+.campaign-filter input:focus,
+
+.campaign-filter select:focus{
+
+    border-color:#2563eb;
+
+    box-shadow:0 0 0 3px rgba(37,99,235,.15);
+
+}
+
+
+/* ==========================================================
+   TABLE
+========================================================== */
+
+.campaign-table{
+
+    overflow:hidden;
+
+    border-radius:18px;
+
+    background:#fff;
+
+    border:1px solid #e2e8f0;
+
+    box-shadow:0 5px 15px rgba(15,23,42,.05);
+
+}
+
+.campaign-table table{
+
+    width:100%;
+
+    border-collapse:collapse;
+
+}
+
+.campaign-table thead{
+
+    background:#f8fafc;
+
+}
+
+.campaign-table th{
+
+    padding:18px;
+
+    text-align:left;
+
+    font-size:12px;
+
+    font-weight:700;
+
+    color:#64748b;
+
+    text-transform:uppercase;
+
+    border-bottom:1px solid #e2e8f0;
+
+}
+
+.campaign-table td{
+
+    padding:18px;
+
+    border-bottom:1px solid #f1f5f9;
+
+    color:#334155;
+
+    font-size:14px;
+
+}
+
+.campaign-table tbody tr{
+
+    transition:.25s;
+
+}
+
+.campaign-table tbody tr:hover{
+
+    background:#f8fbff;
+
+}
+
+
+/* ==========================================================
+   PLATFORM BADGE
+========================================================== */
+
+.platform-badge{
+
+    display:inline-flex;
+
+    align-items:center;
+
+    padding:6px 14px;
+
+    border-radius:999px;
+
+    font-size:12px;
+
+    font-weight:600;
+
+}
+
+.platform-meta{
+
+    background:#dbeafe;
+
+    color:#2563eb;
+
+}
+
+.platform-google{
+
+    background:#fee2e2;
+
+    color:#dc2626;
+
+}
+
+.platform-website{
+
+    background:#e2e8f0;
+
+    color:#475569;
+
+}
+
+.platform-referral{
+
+    background:#dcfce7;
+
+    color:#16a34a;
+
+}
+
+.platform-instagram{
+
+    background:#fce7f3;
+
+    color:#db2777;
+
+}
+
+.platform-walkin{
+
+    background:#fef3c7;
+
+    color:#ca8a04;
+
+}
+
+
+/* ==========================================================
+   STATUS
+========================================================== */
+
+.status{
+
+    display:inline-flex;
+
+    align-items:center;
+
+    padding:6px 14px;
+
+    border-radius:999px;
+
+    font-size:12px;
+
+    font-weight:700;
+
+}
+
+.active{
+
+    background:#dcfce7;
+
+    color:#15803d;
+
+}
+
+.running{
+
+    background:#dbeafe;
+
+    color:#2563eb;
+
+}
+
+.paused{
+
+    background:#fef3c7;
+
+    color:#ca8a04;
+
+}
+
+.completed{
+
+    background:#e2e8f0;
+
+    color:#475569;
+
+}
+
+
+/* ==========================================================
+   ACTIONS
+========================================================== */
+
+.action-buttons{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:10px;
+
+}
+
+.action-btn{
+
+    width:38px;
+
+    height:38px;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    border:none;
+
+    border-radius:10px;
+
+    cursor:pointer;
+
+    transition:.25s;
+
+    background:#f8fafc;
+
+}
+
+.action-btn:hover{
+
+    transform:translateY(-2px);
+
+}
+
+.view-btn:hover{
+
+    background:#dbeafe;
+
+    color:#2563eb;
+
+}
+
+.edit-btn:hover{
+
+    background:#dcfce7;
+
+    color:#16a34a;
+
+}
+
+.delete-btn:hover{
+
+    background:#fee2e2;
+
+    color:#dc2626;
+
+}
+
+
+/* ==========================================================
+   PAGINATION
+========================================================== */
+
+.campaign-pagination{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    padding:18px 24px;
+
+    border-top:1px solid #e2e8f0;
+
+    background:#fff;
+
+}
+
+
+/* ==========================================================
+   RESPONSIVE
+========================================================== */
+
+@media(max-width:1200px){
+
+.campaign-stats{
+
+    grid-template-columns:repeat(2,1fr);
+
+}
+
+}
+
+@media(max-width:768px){
+
+.campaign-page{
+
+    padding:15px;
+
+}
+
+.campaign-header{
+
+    flex-direction:column;
+
+    align-items:flex-start;
+
+    gap:20px;
+
+}
+
+.campaign-stats{
+
+    grid-template-columns:1fr;
+
+}
+
+.campaign-filter{
+
+    flex-direction:column;
+
+}
+
+.campaign-filter input,
+
+.campaign-filter select{
+
+    width:100%;
+
+}
+
+.campaign-table{
+
+    overflow-x:auto;
+
+}
+
+}

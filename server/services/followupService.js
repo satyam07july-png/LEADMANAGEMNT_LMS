@@ -1,8 +1,34 @@
-import pool from "../config/db.js";
+/* ============================================================================
+ * FOLLOW-UP SERVICE
+ * Business Logic Layer
+ * ============================================================================
+ */
+
+import { withTransaction } from "../config/db.js";
 import ApiError from "../utils/ApiError.js";
 
 import {
+  createFollowupRepository,
+  updateFollowupRepository,
+  softDeleteFollowupRepository,
+  restoreFollowupRepository,
+  completeFollowupRepository,
+  rescheduleFollowupRepository,
+  findFollowupByIdRepository,
+  getFollowupsRepository,
+  getFollowupStatisticsRepository,
+  getFollowupTimelineRepository,
+  checkPendingFollowupRepository,
+  checkFollowupOwnershipRepository,
+  bulkCompleteFollowupsRepository,
+bulkSoftDeleteFollowupsRepository,
+bulkRestoreFollowupsRepository,
+bulkAssignFollowupsRepository,
+} from "../repositories/followupRepository.js";
+
+import {
   findLeadByIdRepository,
+  updateLeadStatusRepository,
 } from "../repositories/leadRepository.js";
 
 import {
@@ -10,378 +36,1098 @@ import {
 } from "../repositories/employeeRepository.js";
 
 import {
-  createFollowupRepository,
-  findFollowupByIdRepository,
-  updateFollowupRepository,
-  completeFollowupRepository,
-  rescheduleFollowupRepository,
-  deleteFollowupRepository,
-  getLeadFollowupsRepository,
-  getPendingFollowupsRepository,
-  getTodayFollowupsRepository,
-  getOverdueFollowupsRepository,
-  
-} from "../repositories/followupRepository.js";
+  createLeadActivityRepository,
+} from "../repositories/activityRepository.js";
 
-import {
 
-  getCompletedFollowupsRepository,
-
-  getUpcomingFollowupsRepository,
-
-  getMissedFollowupsRepository,
-
-  getEmployeeFollowupsRepository,
-
-  getFollowupStatisticsRepository,
-
-} from "../repositories/followupRepository.js";
-
-/**
- * =====================================================
- * Create Follow-up
- * =====================================================
+/* ============================================================================
+ * CONSTANTS
+ * ============================================================================
  */
 
-export const createFollowupService = async (
-    followupData
-) => {
+const FOLLOWUP_STATUS = Object.freeze({
+  PENDING: "PENDING",
+  COMPLETED: "COMPLETED",
+  MISSED: "MISSED",
+  CANCELLED: "CANCELLED",
+});
 
-    const client = await pool.connect();
+const FOLLOWUP_PRIORITY = Object.freeze({
+  LOW: "LOW",
+  MEDIUM: "MEDIUM",
+  HIGH: "HIGH",
+});
 
-    try {
+const FOLLOWUP_OUTCOME = Object.freeze({
+  INTERESTED: "INTERESTED",
+  NOT_INTERESTED: "NOT_INTERESTED",
+  CALLBACK: "CALLBACK",
+  NO_RESPONSE: "NO_RESPONSE",
+  ADMISSION_DONE: "ADMISSION_DONE",
+});
 
-        const lead =
-            await findLeadByIdRepository(
-                followupData.lead_id
-            );
+const USER_ROLE = Object.freeze({
+  ADMIN: "ADMIN",
+  COUNSELLOR: "COUNSELLOR",
+});
 
-        if (!lead) {
+/**
+ * Validate lead existence.
+ *
+ * @param {number|string} leadId - Lead ID
+ * @param {object|null} client - Database transaction client
+ * @returns {Promise<object>}
+ * @throws {ApiError}
+ */
+/**
+ * Validate employee existence.
+ *
+ * @param {number|string} employeeId - Employee ID
+ * @param {object|null} client - Database transaction client
+ * @returns {Promise<object>}
+ * @throws {ApiError}
+ */
+async function validateEmployee(employeeId, client = null) {
+  if (!employeeId) {
+    throw new ApiError(400, "Employee ID is required.");
+  }
 
-            throw new ApiError(
-                404,
-                "Lead not found."
-            );
+  const employee = await findEmployeeByIdRepository(employeeId, client);
 
-        }
+  if (!employee) {
+    throw new ApiError(404, "Employee not found.");
+  }
 
-        const employee =
-            await findEmployeeByIdRepository(
-                followupData.employee_id
-            );
+  return employee;
+}
 
-        if (!employee) {
+/**
+ * Validate follow-up existence.
+ *
+ * @param {number|string} followupId - Follow-up ID
+ * @param {object|null} client - Database transaction client
+ * @returns {Promise<object>}
+ * @throws {ApiError}
+ */
+async function validateFollowup(
+  followupId,
+  client = null,
+  includeDeleted = false
+) {
+  if (!followupId) {
+    throw new ApiError(400, "Follow-up ID is required.");
+  }
 
-            throw new ApiError(
-                404,
-                "Employee not found."
-            );
+  const followup = await findFollowupByIdRepository(
+    followupId,
+    client,
+    includeDeleted
+  );
 
-        }
+  if (!followup) {
+    throw new ApiError(404, "Follow-up not found.");
+  }
 
-        await client.query("BEGIN");
+  return followup;
+}
 
-        const followup =
-            await createFollowupRepository(
-                client,
-                followupData
-            );
+/**
+ * Verify follow-up ownership.
+ *
+ * @param {number|string} followupId - Follow-up ID
+ * @param {object} currentUser - Authenticated user
+ * @param {object|null} client - Database transaction client
+ * @returns {Promise<boolean>}
+ * @throws {ApiError}
+ */
+async function verifyOwnership(followupId, currentUser, client = null) {
+  if (!currentUser) {
+    throw new ApiError(401, "Authentication required.");
+  }
 
-        await client.query("COMMIT");
+  // Admin bypass
+  if (currentUser.role === USER_ROLE.ADMIN) {
+    return true;
+  }
 
-        return followup;
+  if (!currentUser.employee_id) {
+    throw new ApiError(401, "Employee information not found.");
+  }
 
-    } catch (error) {
+  const isOwner = await checkFollowupOwnershipRepository(
+    followupId,
+    currentUser.employee_id
+  );
 
-        await client.query("ROLLBACK");
+  if (!isOwner) {
+    throw new ApiError(
+      403,
+      "You are not authorized to perform this action."
+    );
+  }
 
-        throw error;
+  return true;
+}
 
-    } finally {
+/**
+ * Validate pending follow-up.
+ *
+ * Ensures that only one active pending follow-up
+ * exists for a lead.
+ *
+ * @param {number|string} leadId
+ * @param {object|null} client
+ * @returns {Promise<boolean>}
+ * @throws {ApiError}
+ */
+async function validatePendingFollowup(
+  leadId,
+  client = null
+) {
+  if (!leadId) {
+    throw new ApiError(
+      400,
+      "Lead ID is required."
+    );
+  }
 
-        client.release();
-
-    }
-
-};
-
-export const getLeadFollowupsService = async (
-
-    leadId,
-
-    page = 1,
-
-    limit = 20
-
-) => {
-
-    return await getLeadFollowupsRepository(
-
-        leadId,
-
-        page,
-
-        limit
-
+  const hasPendingFollowup =
+    await checkPendingFollowupRepository(
+      leadId,
+      client
     );
 
-};
-
-export const getPendingFollowupsService = async (
-
-    employeeId
-
-) => {
-
-    return await getPendingFollowupsRepository(
-
-        employeeId
-
+  if (hasPendingFollowup) {
+    throw new ApiError(
+      409,
+      "A pending follow-up already exists for this lead."
     );
+  }
 
-};
+  return true;
+}
 
-export const getTodayFollowupsService = async (
+/**
+ * Validate Lead Assignment
+ */
+function validateLeadAssignment(lead, employeeId) {
 
-    employeeId
+  if (!lead) {
+    throw new ApiError(404, "Lead not found.");
+  }
 
-) => {
+  if (!employeeId) {
+    throw new ApiError(400, "Employee ID is required.");
+  }
 
-    return await getTodayFollowupsRepository(
-
-        employeeId
-
+  if (Number(lead.assigned_to) !== Number(employeeId)) {
+    throw new ApiError(
+      400,
+      "This lead is not assigned to the selected employee."
     );
+  }
 
-};
+  return true;
+}
 
-export const getOverdueFollowupsService = async (
-
-    employeeId
-
-) => {
-
-    return await getOverdueFollowupsRepository(
-
-        employeeId
-
-    );
-
-};
-
-export const updateFollowupService = async (
-    id,
-    followupData
-) => {
-
-    const client = await pool.connect();
-
-    try {
-
-        const followup =
-            await findFollowupByIdRepository(id);
-
-        if (!followup) {
-
-            throw new ApiError(
-                404,
-                "Follow-up not found."
-            );
-
-        }
-
-        await client.query("BEGIN");
-
-        const updated =
-            await updateFollowupRepository(
-
-                client,
-
-                id,
-
-                followupData
-
-            );
-
-        await client.query("COMMIT");
-
-        return updated;
-
-    } catch (error) {
-
-        await client.query("ROLLBACK");
-
-        throw error;
-
-    } finally {
-
-        client.release();
-
-    }
-
-};
-
-export const completeFollowupService = async (
-  id,
-  completedBy,
+/**
+ * Synchronize lead status based on follow-up outcome.
+ *
+ * @param {number|string} leadId
+ * @param {string} outcome
+ * @param {number|string} updatedBy
+ * @param {object|null} client
+ * @returns {Promise<object>}
+ * @throws {ApiError}
+ */
+async function syncLeadStatus(
+  leadId,
   outcome,
-  remarks
-) => {
+  updatedBy,
+  client = null
+) {
+  if (!leadId) {
+    throw new ApiError(400, "Lead ID is required.");
+  }
 
-  const client = await pool.connect();
+  if (!updatedBy) {
+    throw new ApiError(400, "Updated by is required.");
+  }
 
-  try {
+  const statusMap = {
+    [FOLLOWUP_OUTCOME.INTERESTED]: "QUALIFIED",
+    [FOLLOWUP_OUTCOME.CALLBACK]: "FOLLOW_UP",
+    [FOLLOWUP_OUTCOME.NO_RESPONSE]: "FOLLOW_UP",
+    [FOLLOWUP_OUTCOME.NOT_INTERESTED]: "LOST",
+    [FOLLOWUP_OUTCOME.ADMISSION_DONE]: "ADMISSION_DONE",
+  };
 
-    const followup = await findFollowupByIdRepository(id);
+  const leadStatus = statusMap[outcome];
 
-    if (!followup) {
+  if (!leadStatus) {
+    throw new ApiError(
+      400,
+      "Invalid follow-up outcome."
+    );
+  }
+
+  return await updateLeadStatusRepository(
+    client,
+    leadId,
+    leadStatus,
+    updatedBy
+  );
+}
+
+async function validateLead(leadId, client = null) {
+  if (!leadId) {
+    throw new ApiError(400, "Lead ID is required.");
+  }
+
+  const lead = await findLeadByIdRepository(leadId);
+
+  if (!lead) {
+    throw new ApiError(404, "Lead not found.");
+  }
+
+  return lead;
+}
+
+/**
+ * Create activity log.
+ *
+ * @param {object} activity
+ * @param {number|string} activity.leadId
+ * @param {string} activity.action
+ * @param {string} [activity.description]
+ * @param {number|string} activity.createdBy
+ * @param {object|null} client
+ * @returns {Promise<object>}
+ * @throws {ApiError}
+ */
+async function createActivityLog(
+  activity,
+  client = null
+) {
+  const {
+    leadId,
+    action,
+    description = null,
+    createdBy,
+  } = activity;
+
+  if (!leadId) {
+    throw new ApiError(400, "Lead ID is required.");
+  }
+
+  if (!action) {
+    throw new ApiError(400, "Activity action is required.");
+  }
+
+  if (!createdBy) {
+    throw new ApiError(400, "Created by is required.");
+  }
+
+  return await createLeadActivityRepository(
+  client,
+  {
+    lead_id: leadId,
+    activity: action,
+    description,
+    performed_by: createdBy,
+  }
+);
+}
+
+async function validateBulkFollowupIds(followupIds) {
+
+  if (!Array.isArray(followupIds) || followupIds.length === 0) {
+    throw new ApiError(
+      400,
+      "At least one follow-up ID is required."
+    );
+  }
+
+  const uniqueIds = [...new Set(followupIds)];
+
+  return uniqueIds;
+}
+
+/**
+ * ============================================================================
+ * Create Follow-up
+ * ============================================================================
+ */
+export async function createFollowupService(
+  payload,
+  currentUser
+) {
+  return await withTransaction(async (client) => {
+
+    /* ------------------------------------------------------------------------
+ * Validation
+ * ---------------------------------------------------------------------- */
+
+const lead = await validateLead(
+  payload.lead_id,
+  client
+);
+
+await validateEmployee(
+  payload.employee_id,
+  client
+);
+
+validateLeadAssignment(
+  lead,
+  payload.employee_id
+);
+
+await validatePendingFollowup(
+  payload.lead_id,
+  client
+);
+
+    /* ------------------------------------------------------------------------
+     * Business Rules
+     * ---------------------------------------------------------------------- */
+        const followupData = {
+  ...payload,
+  status: FOLLOWUP_STATUS.PENDING,
+  created_by: currentUser.id,
+};
+    /* ------------------------------------------------------------------------
+     * Create Follow-up
+     * ---------------------------------------------------------------------- */
+       
+const followup = await createFollowupRepository(
+    client,
+    followupData
+);
+    /* ------------------------------------------------------------------------
+     * Activity Log
+     * ---------------------------------------------------------------------- */
+       await createActivityLog(
+  {
+    leadId: payload.lead_id,
+    action: "FOLLOWUP_CREATED",
+    description: "Follow-up created successfully.",
+    createdBy: currentUser.id,
+  },
+  client
+);
+    /* ------------------------------------------------------------------------
+     * Response
+     * ---------------------------------------------------------------------- */
+    return followup;
+  });
+}
+
+/**
+ * ============================================================================
+ * Get All Follow-ups
+ * ============================================================================
+ */
+export async function getAllFollowupsService(
+  filters = {}
+) {
+
+  return await getFollowupsRepository(
+    filters
+  );
+
+}
+
+/**
+ * ============================================================================
+ * Get Follow-up By ID
+ * ============================================================================
+ */
+export async function getFollowupByIdService(
+  followupId,
+  currentUser
+) {
+
+  /* ------------------------------------------------------------------------
+   * Validation
+   * ---------------------------------------------------------------------- */
+
+  const followup = await validateFollowup(
+    followupId
+  );
+
+  /* ------------------------------------------------------------------------
+   * Authorization
+   * ---------------------------------------------------------------------- */
+
+  await verifyOwnership(
+    followupId,
+    currentUser
+  );
+
+  /* ------------------------------------------------------------------------
+   * Response
+   * ---------------------------------------------------------------------- */
+
+  return followup;
+
+}
+
+/**
+ * ============================================================================
+ * Update Follow-up
+ * ============================================================================
+ */
+export async function updateFollowupService(
+  followupId,
+  payload,
+  currentUser
+) {
+  return await withTransaction(async (client) => {
+
+    /* ------------------------------------------------------------------------
+ * Validation
+ * ---------------------------------------------------------------------- */
+
+const followup = await validateFollowup(
+  followupId,
+  client,
+  true
+);
+
+await validateEmployee(
+  payload.employee_id,
+  client
+);
+
+/* ------------------------------------------------------------------------
+ * Authorization
+ * ---------------------------------------------------------------------- */
+
+await verifyOwnership(
+  followupId,
+  currentUser,
+  client
+);
+
+    /* ------------------------------------------------------------------------
+     * Business Rules
+     * ---------------------------------------------------------------------- */
+       const updateData = {
+  ...payload,
+  updated_by: currentUser.id,
+};
+    /* ------------------------------------------------------------------------
+     * Update Follow-up
+     * ---------------------------------------------------------------------- */
+       const updatedFollowup =
+  await updateFollowupRepository(
+    client,
+    followupId,
+    updateData
+  );
+    /* ------------------------------------------------------------------------
+     * Activity Log
+     * ---------------------------------------------------------------------- */
+      await createActivityLog(
+  {
+    leadId: followup.lead_id,
+    action: "FOLLOWUP_UPDATED",
+    description: "Follow-up updated successfully.",
+    createdBy: currentUser.id,
+  },
+  client
+);
+    /* ------------------------------------------------------------------------
+     * Response
+     * ---------------------------------------------------------------------- */
+      return updatedFollowup;
+  });
+}
+/**
+ * ============================================================================
+ * Reschedule Follow-up
+ * ============================================================================
+ */
+export async function rescheduleFollowupService(
+  followupId,
+  payload,
+  currentUser
+) {
+  return await withTransaction(async (client) => {
+
+    /* ------------------------------------------------------------------------
+     * Validation
+     * ---------------------------------------------------------------------- */
+
+    const followup = await validateFollowup(
+      followupId,
+      client
+    );
+
+    /* ------------------------------------------------------------------------
+     * Authorization
+     * ---------------------------------------------------------------------- */
+
+   await verifyOwnership(
+  followupId,
+  currentUser,
+  client
+);
+
+    /* ------------------------------------------------------------------------
+     * Business Rules
+     * ---------------------------------------------------------------------- */
+
+    if (followup.status !== FOLLOWUP_STATUS.PENDING) {
       throw new ApiError(
-        404,
-        "Follow-up not found."
+        400,
+        "Only pending follow-ups can be rescheduled."
       );
     }
 
-    await client.query("BEGIN");
+    if (!payload.next_followup_at) {
+      throw new ApiError(
+        400,
+        "Next follow-up date is required."
+      );
+    }
 
-    const completed =
+    const nextFollowupDate = new Date(
+      payload.next_followup_at
+    );
+
+    if (Number.isNaN(nextFollowupDate.getTime())) {
+      throw new ApiError(
+        400,
+        "Invalid next follow-up date."
+      );
+    }
+
+    if (nextFollowupDate <= new Date()) {
+      throw new ApiError(
+        400,
+        "Next follow-up date must be in the future."
+      );
+    }
+
+    const updateData = {
+      next_followup_at: payload.next_followup_at,
+      remarks: payload.remarks,
+      updated_by: currentUser.id,
+    };
+
+    /* ------------------------------------------------------------------------
+     * Reschedule Follow-up
+     * ---------------------------------------------------------------------- */
+
+    const updatedFollowup =
+      await rescheduleFollowupRepository(
+    client,
+    followupId,
+    payload.next_followup_at,
+    payload.remarks,
+    currentUser.id
+);
+
+    /* ------------------------------------------------------------------------
+     * Activity Log
+     * ---------------------------------------------------------------------- */
+
+    await createActivityLog(
+      {
+        leadId: followup.lead_id,
+        action: "FOLLOWUP_RESCHEDULED",
+        description: `Follow-up rescheduled to ${payload.next_followup_at}.`,
+        createdBy: currentUser.id,
+      },
+      client
+    );
+
+    /* ------------------------------------------------------------------------
+     * Response
+     * ---------------------------------------------------------------------- */
+
+    return updatedFollowup;
+
+  });
+}
+
+/**
+ * ============================================================================
+ * Delete Follow-up
+ * ============================================================================
+ */
+export async function deleteFollowupService(
+  followupId,
+  currentUser
+) {
+  return await withTransaction(async (client) => {
+
+    /* ------------------------------------------------------------------------
+     * Validation
+     * ---------------------------------------------------------------------- */
+
+    const followup = await validateFollowup(
+      followupId,
+      client
+    );
+
+    /* ------------------------------------------------------------------------
+     * Authorization
+     * ---------------------------------------------------------------------- */
+
+   await verifyOwnership(
+  followupId,
+  currentUser,
+  client
+);
+
+    /* ------------------------------------------------------------------------
+     * Business Rules
+     * ---------------------------------------------------------------------- */
+
+    if (followup.status === FOLLOWUP_STATUS.COMPLETED) {
+      throw new ApiError(
+        400,
+        "Completed follow-ups cannot be deleted."
+      );
+    }
+
+    /* ------------------------------------------------------------------------
+     * Delete Follow-up
+     * ---------------------------------------------------------------------- */
+
+    const deletedFollowup =
+  await softDeleteFollowupRepository(
+    client,
+    followupId,
+    currentUser.id
+  );
+
+    /* ------------------------------------------------------------------------
+     * Activity Log
+     * ---------------------------------------------------------------------- */
+
+    await createActivityLog(
+      {
+        leadId: followup.lead_id,
+        action: "FOLLOWUP_DELETED",
+        description: "Follow-up deleted successfully.",
+        createdBy: currentUser.id,
+      },
+      client
+    );
+
+    /* ------------------------------------------------------------------------
+     * Response
+     * ---------------------------------------------------------------------- */
+
+    return deletedFollowup;
+
+  });
+}
+
+/**
+ * ============================================================================
+ * Restore Follow-up
+ * ============================================================================
+ */
+export async function restoreFollowupService(
+  followupId,
+  currentUser
+) {
+  return await withTransaction(async (client) => {
+
+    /* ------------------------------------------------------------------------
+     * Validation
+     * ---------------------------------------------------------------------- */
+
+const followup = await validateFollowup(
+  followupId,
+  client,
+  true
+);
+
+if (!followup.is_deleted) {
+  throw new ApiError(
+    400,
+    "Follow-up is already active."
+  );
+}
+
+    /* ------------------------------------------------------------------------
+     * Authorization
+     * ---------------------------------------------------------------------- */
+
+    await verifyOwnership(
+  followupId,
+  currentUser,
+  client
+);
+
+    /* ------------------------------------------------------------------------
+     * Restore Follow-up
+     * ---------------------------------------------------------------------- */
+
+   const restoredFollowup =
+  await restoreFollowupRepository(
+    client,
+    followupId,
+    currentUser.id
+  );
+
+    /* ------------------------------------------------------------------------
+     * Activity Log
+     * ---------------------------------------------------------------------- */
+
+    await createActivityLog(
+      {
+        leadId: followup.lead_id,
+        action: "FOLLOWUP_RESTORED",
+        description: "Follow-up restored successfully.",
+        createdBy: currentUser.id,
+      },
+      client
+    );
+
+    /* ------------------------------------------------------------------------
+     * Response
+     * ---------------------------------------------------------------------- */
+
+    return restoredFollowup;
+
+  });
+}
+
+/**
+ * ============================================================================
+ * Get Follow-up Statistics
+ * ============================================================================
+ */
+export async function getFollowupStatisticsService() {
+
+  /* ------------------------------------------------------------------------
+   * Repository
+   * ---------------------------------------------------------------------- */
+
+  const statistics =
+    await getFollowupStatisticsRepository();
+
+  /* ------------------------------------------------------------------------
+   * Response
+   * ---------------------------------------------------------------------- */
+
+  return statistics;
+
+}
+
+/**
+ * ============================================================================
+ * Get Lead Timeline
+ * ============================================================================
+ */
+export async function getLeadTimelineService(
+  leadId
+) {
+
+  /* ------------------------------------------------------------------------
+   * Validation
+   * ---------------------------------------------------------------------- */
+
+  await validateLead(
+    leadId
+  );
+
+  /* ------------------------------------------------------------------------
+   * Repository
+   * ---------------------------------------------------------------------- */
+
+  const timeline =
+    await getFollowupTimelineRepository(
+    leadId
+);
+
+  /* ------------------------------------------------------------------------
+   * Response
+   * ---------------------------------------------------------------------- */
+
+  return timeline;
+
+}
+
+/**
+ * ============================================================================
+ * Complete Follow-up
+ * ============================================================================
+ */
+export async function completeFollowupService(
+  followupId,
+  payload,
+  currentUser
+) {
+  return await withTransaction(async (client) => {
+
+    /* ------------------------------------------------------------------------
+     * Validation
+     * ---------------------------------------------------------------------- */
+
+    const followup = await validateFollowup(
+      followupId,
+      client
+    );
+
+    /* ------------------------------------------------------------------------
+     * Authorization
+     * ---------------------------------------------------------------------- */
+
+    await verifyOwnership(
+      followupId,
+      currentUser,
+      client
+    );
+
+    /* ------------------------------------------------------------------------
+     * Business Rules
+     * ---------------------------------------------------------------------- */
+
+    if (followup.status !== FOLLOWUP_STATUS.PENDING) {
+      throw new ApiError(
+        400,
+        "Only pending follow-ups can be completed."
+      );
+    }
+
+    if (!payload.outcome) {
+      throw new ApiError(
+        400,
+        "Follow-up outcome is required."
+      );
+    }
+
+    /* ------------------------------------------------------------------------
+     * Complete Follow-up
+     * ---------------------------------------------------------------------- */
+
+    const completedFollowup =
       await completeFollowupRepository(
         client,
-        id,
-        completedBy,
-        outcome,
-        remarks
+        followupId,
+        payload.outcome,
+        payload.remarks,
+        currentUser.id
       );
 
-    await client.query("COMMIT");
+    /* ------------------------------------------------------------------------
+     * Sync Lead Status
+     * ---------------------------------------------------------------------- */
 
-    return completed;
+    await syncLeadStatus(
+      followup.lead_id,
+      payload.outcome,
+      currentUser.id,
+      client
+    );
 
-  } catch (error) {
+    /* ------------------------------------------------------------------------
+     * Activity Log
+     * ---------------------------------------------------------------------- */
 
-    await client.query("ROLLBACK");
+    await createActivityLog(
+      {
+        leadId: followup.lead_id,
+        action: "FOLLOWUP_COMPLETED",
+        description: "Follow-up completed successfully.",
+        createdBy: currentUser.id,
+      },
+      client
+    );
 
-    throw error;
+    /* ------------------------------------------------------------------------
+     * Response
+     * ---------------------------------------------------------------------- */
 
-  } finally {
+    return completedFollowup;
 
-    client.release();
+  });
+}
 
-  }
+export async function bulkCompleteFollowupsService(
+  payload,
+  currentUser
+) {
+  return await withTransaction(async (client) => {
 
-};
+    const followupIds =
+      await validateBulkFollowupIds(payload.followupIds);
 
-export const rescheduleFollowupService = async (
-  id,
-  nextFollowupAt,
-  remarks,
-  updatedBy
-) => {
-
-  const client = await pool.connect();
-
-  try {
-
-    const followup = await findFollowupByIdRepository(id);
-
-    if (!followup) {
+    if (!payload.outcome) {
       throw new ApiError(
-        404,
-        "Follow-up not found."
+        400,
+        "Follow-up outcome is required."
       );
     }
 
-    await client.query("BEGIN");
+    const successfulIds = [];
+    const failedIds = [];
 
-    const updated =
-      await rescheduleFollowupRepository(
-        client,
-        id,
-        nextFollowupAt,
-        remarks,
-        updatedBy
-      );
+    for (const followupId of followupIds) {
 
-    await client.query("COMMIT");
+      try {
 
-    return updated;
+        const followup = await validateFollowup(
+          followupId,
+          client
+        );
 
-  } catch (error) {
+        await verifyOwnership(
+          followupId,
+          currentUser,
+          client
+        );
 
-    await client.query("ROLLBACK");
-    throw error;
+        if (followup.status === FOLLOWUP_STATUS.COMPLETED) {
+          failedIds.push({
+            id: followupId,
+            reason: "Already completed."
+          });
+          continue;
+        }
 
-  } finally {
+        await completeFollowupRepository(
+          client,
+          followupId,
+          payload.outcome,
+          payload.remarks,
+          currentUser.id
+        );
 
-    client.release();
+        await syncLeadStatus(
+          followup.lead_id,
+          payload.outcome,
+          currentUser.id,
+          client
+        );
 
-  }
+        await createActivityLog(
+          {
+            leadId: followup.lead_id,
+            action: "FOLLOWUP_BULK_COMPLETED",
+            description: "Bulk follow-up completed.",
+            createdBy: currentUser.id,
+          },
+          client
+        );
 
-};
+        successfulIds.push(followupId);
 
-export const deleteFollowupService = async (
-  id,
-  updatedBy
-) => {
+      } catch (error) {
 
-  const client = await pool.connect();
+        failedIds.push({
+          id: followupId,
+          reason: error.message,
+        });
 
-  try {
+      }
 
-    const followup = await findFollowupByIdRepository(id);
-
-    if (!followup) {
-      throw new ApiError(
-        404,
-        "Follow-up not found."
-      );
     }
 
-    await client.query("BEGIN");
+    return {
+      processed: successfulIds.length,
+      failed: failedIds.length,
+      successfulIds,
+      failedIds,
+    };
+
+  });
+}
+
+export async function bulkDeleteFollowupsService(
+  payload,
+  currentUser
+) {
+
+  return await withTransaction(async (client) => {
+
+    const followupIds =
+      await validateBulkFollowupIds(
+        payload.followupIds
+      );
 
     const deleted =
-      await deleteFollowupRepository(
+      await bulkSoftDeleteFollowupsRepository(
         client,
-        id,
-        updatedBy
+        followupIds,
+        currentUser.id
       );
 
-    await client.query("COMMIT");
+    return {
+      total: deleted.length,
+      followups: deleted,
+    };
 
-    return deleted;
+  });
 
-  } catch (error) {
+}
 
-    await client.query("ROLLBACK");
-    throw error;
+export async function bulkRestoreFollowupsService(
+  payload,
+  currentUser
+) {
 
-  } finally {
+  return await withTransaction(async (client) => {
 
-    client.release();
+    const followupIds =
+      await validateBulkFollowupIds(
+        payload.followupIds
+      );
 
-  }
+    const restored =
+      await bulkRestoreFollowupsRepository(
+        client,
+        followupIds,
+        currentUser.id
+      );
 
-};
+    return {
+      total: restored.length,
+      followups: restored,
+    };
 
-export const getCompletedFollowupsService =
-async (employeeId,page,limit)=>
-await getCompletedFollowupsRepository(
-employeeId,page,limit);
+  });
 
-export const getUpcomingFollowupsService =
-async (employeeId)=>
-await getUpcomingFollowupsRepository(
-employeeId);
+}
 
-export const getMissedFollowupsService =
-async (employeeId)=>
-await getMissedFollowupsRepository(
-employeeId);
+export async function bulkAssignFollowupsService(
+  payload,
+  currentUser
+) {
 
-export const getEmployeeFollowupsService =
-async (employeeId)=>
-await getEmployeeFollowupsRepository(
-employeeId);
+  return await withTransaction(async (client) => {
 
-export const getFollowupStatisticsService =
-async ()=>
-await getFollowupStatisticsRepository();
+    const followupIds =
+      await validateBulkFollowupIds(
+        payload.followupIds
+      );
+
+    await validateEmployee(
+      payload.employeeId,
+      client
+    );
+
+    const assigned =
+      await bulkAssignFollowupsRepository(
+        client,
+        followupIds,
+        payload.employeeId,
+        currentUser.id
+      );
+
+    return {
+      total: assigned.length,
+      followups: assigned,
+    };
+
+  });
+
+}

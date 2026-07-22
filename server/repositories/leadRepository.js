@@ -24,49 +24,183 @@ export const createLeadRepository = async (
 ) => {
 
   const query = `
-    INSERT INTO leads (
+  INSERT INTO leads (
 
-      lead_code,
-      full_name,
-      email,
-      mobile,
-      campaign_id,
-      assigned_to,
-      source,
-      status,
-      priority,
-      remarks,
-      next_followup,
-      created_by
+    lead_code,
 
-    )
+    campaign_id,
 
-    VALUES (
+    full_name,
 
-      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
+    mobile,
 
-    )
+    alternate_mobile,
+
+    email,
+
+    city,
+
+    state,
+
+    country,
+
+    interested_course,
+
+    preferred_centre,
+
+    source,
+
+    platform,
+
+    landing_page_url,
+
+    utm_source,
+
+    utm_medium,
+
+    utm_campaign,
+
+    utm_content,
+
+    utm_term,
+
+    external_lead_id,
+
+    status,
+
+    priority,
+
+    assigned_to,
+
+    remarks,
+
+    next_followup,
+
+    captured_at,
+
+    created_by
+
+)
+  
+
+VALUES (
+
+$1,
+
+$2,
+
+$3,
+
+$4,
+
+$5,
+
+$6,
+
+$7,
+
+$8,
+
+$9,
+
+$10,
+
+$11,
+
+$12,
+
+$13,
+
+$14,
+
+$15,
+
+$16,
+
+$17,
+
+$18,
+
+$19,
+
+$20,
+
+$21,
+
+$22,
+
+$23,
+
+$24,
+
+$25,
+
+$26,
+
+$27
+
+)
 
     RETURNING *;
   `;
 
-  const values = [
+ const values = [
 
     lead.lead_code,
-    lead.full_name,
-    lead.email,
-    lead.mobile,
+
     lead.campaign_id,
-    lead.assigned_to,
+
+    lead.full_name,
+
+    lead.mobile,
+
+    lead.alternate_mobile || null,
+
+    lead.email || null,
+
+    lead.city || null,
+
+    lead.state || null,
+
+    lead.country || "India",
+
+    lead.interested_course || null,
+
+    lead.preferred_centre || null,
+
     lead.source,
-    lead.status,
-    lead.priority,
-    lead.remarks,
-    lead.next_followup,
+
+    lead.platform || null,
+
+    lead.landing_page_url || null,
+
+    lead.utm_source || null,
+
+    lead.utm_medium || null,
+
+    lead.utm_campaign || null,
+
+    lead.utm_content || null,
+
+    lead.utm_term || null,
+
+    lead.external_lead_id || null,
+
+    lead.status || "NEW",
+
+    lead.priority || "MEDIUM",
+
+    lead.assigned_to || null,
+
+    lead.remarks || null,
+
+    lead.next_followup || null,
+
+    lead.captured_at || new Date(),
+
     lead.created_by,
 
-  ];
-
+];
   const result =
     await client.query(query, values);
 
@@ -373,37 +507,124 @@ export const updateLeadRepository = async (
 
     const query = `
       UPDATE leads
-      SET
-        full_name = $1,
-        email = $2,
-        mobile = $3,
-        campaign_id = $4,
-        assigned_to = $5,
-        source = $6,
-        status = $7,
-        priority = $8,
-        remarks = $9,
-        next_followup = $10,
-        updated_by = $11,
-        updated_at = CURRENT_TIMESTAMP
-      WHERE id = $12
-      RETURNING *;
+SET
+
+full_name = $1,
+
+mobile = $2,
+
+alternate_mobile = $3,
+
+email = $4,
+
+city = $5,
+
+state = $6,
+
+country = $7,
+
+interested_course = $8,
+
+preferred_centre = $9,
+
+campaign_id = $10,
+
+source = $11,
+
+platform = $12,
+
+landing_page_url = $13,
+
+utm_source = $14,
+
+utm_medium = $15,
+
+utm_campaign = $16,
+
+utm_content = $17,
+
+utm_term = $18,
+
+external_lead_id = $19,
+
+status = $20,
+
+priority = $21,
+
+assigned_to = $22,
+
+remarks = $23,
+
+next_followup = $24,
+
+captured_at = $25,
+
+updated_by = $26,
+
+updated_at = CURRENT_TIMESTAMP
+
+WHERE id = $27
+
+RETURNING *;
     `;
 
     const values = [
-      lead.full_name,
-      lead.email,
-      lead.mobile,
-      lead.campaign_id,
-      lead.assigned_to,
-      lead.source,
-      lead.status,
-      lead.priority,
-      lead.remarks,
-      lead.next_followup,
-      lead.updated_by,
-      id,
-    ];
+
+    lead.full_name,
+
+    lead.mobile,
+
+    lead.alternate_mobile || null,
+
+    lead.email || null,
+
+    lead.city || null,
+
+    lead.state || null,
+
+    lead.country || "India",
+
+    lead.interested_course || null,
+
+    lead.preferred_centre || null,
+
+    lead.campaign_id,
+
+    lead.source,
+
+    lead.platform || null,
+
+    lead.landing_page_url || null,
+
+    lead.utm_source || null,
+
+    lead.utm_medium || null,
+
+    lead.utm_campaign || null,
+
+    lead.utm_content || null,
+
+    lead.utm_term || null,
+
+    lead.external_lead_id || null,
+
+    lead.status,
+
+    lead.priority,
+
+    lead.assigned_to,
+
+    lead.remarks || null,
+
+    lead.next_followup || null,
+
+    lead.captured_at || null,
+
+    lead.updated_by,
+
+    id,
+
+];
 
     console.log(values);
 
@@ -837,5 +1058,81 @@ export const getLeadTimelineRepository = async (
     );
 
   return result.rows;
+
+};
+
+// =====================================================
+// Bulk Assign Leads Repository
+// =====================================================
+
+export const assignBulkLeadsRepository = async (
+
+  client,
+
+  payload
+
+) => {
+
+  const {
+
+    lead_ids,
+
+    employee_id,
+
+    updated_by,
+
+  } = payload;
+
+  const query = `
+
+    UPDATE leads
+
+    SET
+
+      assigned_to = $1,
+
+      updated_by = $2,
+
+      updated_at = NOW()
+
+    WHERE id = ANY($3::int[])
+
+      AND is_deleted = FALSE
+
+    RETURNING
+
+      id,
+
+      lead_code,
+
+      full_name,
+
+      assigned_to;
+
+  `;
+
+  const result = await client.query(
+
+    query,
+
+    [
+
+      employee_id,
+
+      updated_by,
+
+      lead_ids,
+
+    ]
+
+  );
+
+  return {
+
+    assigned_count: result.rowCount,
+
+    leads: result.rows,
+
+  };
 
 };

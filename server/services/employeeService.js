@@ -2,8 +2,18 @@ import pool from "../config/db.js";
 import ApiError from "../utils/ApiError.js";
 import auditLogger from "../utils/auditLogger.js";
 import { isValidRole } from "../constants/roles.js";
+import bcrypt from "bcrypt";
 
 import {
+    createUserRepository,
+    findUserByEmailRepository,
+    updateUserRepository,
+    softDeleteUserRepository,
+    restoreUserRepository
+} from "../repositories/userRepository.js";
+
+import {
+  
   getNextEmployeeCodeRepository,
   createEmployeeRepository,
   findEmployeeByEmailRepository,
@@ -14,6 +24,7 @@ import {
   deleteEmployeeRepository,
   restoreEmployeeRepository,
   getEmployeeStatisticsRepository,
+  
  
 } from "../repositories/employeeRepository.js";
 
@@ -38,6 +49,16 @@ export const createEmployeeService = async (
     if (existingEmployee) {
       throw new ApiError(409, "Employee email already exists.");
     }
+    // exist user
+    const existingUser =
+    await findUserByEmailRepository(employeeData.email);
+
+if (existingUser) {
+    throw new ApiError(
+        409,
+        "User email already exists."
+    );
+}
 
     // Duplicate Mobile
     const existingMobile =
@@ -58,14 +79,40 @@ export const createEmployeeService = async (
 
     const employeeCode =
       `${process.env.EMPLOYEE_CODE_PREFIX || "EMP"}${String(sequence).padStart(6, "0")}`;
+      
+    // temp passweord
+    const temporaryPassword =
+employeeData.password ||
+process.env.DEFAULT_EMPLOYEE_PASSWORD;
+
+const hashedPassword =
+    await bcrypt.hash(
+        temporaryPassword,
+        10
+    );
+   // create user
+    const user =
+    await createUserRepository(
+        client,
+        {
+            full_name: employeeData.full_name,
+            email: employeeData.email,
+            password: hashedPassword,
+            role: employeeData.role
+        }
+    );
 
     // Create Employee
     const employee =
-      await createEmployeeRepository(client, {
-        ...employeeData,
-        employee_code: employeeCode,
-        created_by: currentUser.id,
-      });
+    await createEmployeeRepository(
+        client,
+        {
+            ...employeeData,
+            user_id: user.id,
+            employee_code: employeeCode,
+            created_by: currentUser.id
+        }
+    );
 
     // Audit Log
     auditLogger({
@@ -177,6 +224,15 @@ export const updateEmployeeService = async (
         }
       );
 
+      await updateUserRepository(
+    client,
+    employee.user_id,
+    {
+        full_name: employeeData.full_name,
+        role: employeeData.role
+    }
+);
+
     auditLogger({
       action: "EMPLOYEE_UPDATED",
       module: "EMPLOYEE",
@@ -239,6 +295,11 @@ export const deleteEmployeeService = async (
         currentUser.id
       );
 
+      await softDeleteUserRepository(
+    client,
+    employee.user_id
+);
+
     auditLogger({
       action: "EMPLOYEE_DELETED",
       module: "EMPLOYEE",
@@ -283,6 +344,11 @@ export const restoreEmployeeService = async (
       id,
       currentUser.id
     );
+
+    await restoreUserRepository(
+    client,
+    employee.user_id
+);
 
     if (!employee) {
       throw new ApiError(

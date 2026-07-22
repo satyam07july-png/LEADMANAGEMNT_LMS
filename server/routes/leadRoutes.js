@@ -11,11 +11,11 @@ import {
   createLeadValidator,
   updateLeadValidator,
   assignLeadValidator,
+  assignBulkLeadValidator,
   updateLeadStatusValidator,
   addLeadNoteValidator,
 
 } from "../validators/lead.validator.js";
-
 import {
 
   createLead,
@@ -28,6 +28,8 @@ import {
   getLeadStatistics,
 
   assignLead,
+  assignBulkLeads,
+
   updateLeadStatus,
 
   addLeadNote,
@@ -113,6 +115,16 @@ router.patch(
   assignLeadValidator,
   validate,
   assignLead
+);
+
+
+router.post(
+  "/assign-bulk",
+  authMiddleware,
+  roleMiddleware(ROLES.ADMIN),
+  assignBulkLeadValidator,
+  validate,
+  assignBulkLeads
 );
 
 /**

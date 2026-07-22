@@ -1,0 +1,52 @@
+/* ===========================================
+   Employee Footer
+=========================================== */
+
+.employee-footer {
+  height: 60px;
+  background: #ffffff;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+/* ===========================================
+   Sections
+=========================================== */
+
+.footer-left,
+.footer-center,
+.footer-right {
+  display: flex;
+  align-items: center;
+}
+
+.footer-left p {
+  margin: 0;
+}
+
+.footer-center span,
+.footer-right span {
+  font-weight: 500;
+}
+
+/* ===========================================
+   Responsive
+=========================================== */
+
+@media (max-width: 768px) {
+
+  .employee-footer {
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+    height: auto;
+    padding: 14px;
+    text-align: center;
+  }
+
+}

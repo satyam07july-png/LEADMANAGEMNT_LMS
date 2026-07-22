@@ -498,18 +498,29 @@ const LeadTable = ({
           {/* Checkbox */}
 
         <td className="sticky left-0 z-10 bg-white px-4 py-4">
+<input
+  type="checkbox"
+  className={`
+    h-4
+    w-4
+    rounded
+    border-slate-300
+    text-emerald-600
 
-          <input
-
-            type="checkbox"
-
-            className="h-4 w-4 cursor-pointer rounded border-slate-300 text-blue-600"
-
-            checked={selectedLeads.includes(lead.id)}
-
-            onChange={() => handleSelectLead(lead.id)}
-
-          />
+    ${
+      lead.assigned_employee
+        ? "cursor-not-allowed opacity-100"
+        : "cursor-pointer"
+    }
+  `}
+  checked={
+    lead.assigned_employee
+      ? true
+      : selectedLeads.includes(lead.id)
+  }
+  disabled={!!lead.assigned_employee}
+  onChange={() => handleSelectLead(lead.id)}
+/>
 
         </td>
 
@@ -641,17 +652,23 @@ const LeadTable = ({
 
     <div>
 
-      <p className="font-medium text-slate-800">
+      <p className="font-semibold text-slate-800">
 
         {lead.assigned_employee}
 
       </p>
 
+      <span className="mt-1 inline-flex rounded-full bg-green-100 px-2 py-1 text-[11px] font-semibold text-green-700">
+
+        Assigned
+
+      </span>
+
     </div>
 
   ) : (
 
-    <span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-600">
+    <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-700">
 
       Unassigned
 
@@ -728,41 +745,26 @@ active:scale-95 hover:bg-blue-100 hover:text-blue-600"
   <Trash2 size={18} />
 </button>
 
-            <button
+            {
+  !lead.assigned_employee && (
 
-              onClick={() => onAssign?.(lead)}
+    <button
+      onClick={() => onAssign?.(lead)}
+      title="Assign Lead"
+      className="rounded-xl p-2 text-slate-500 transition-all duration-200
+      hover:-translate-y-0.5
+      hover:scale-105
+      active:scale-95
+      hover:bg-emerald-100
+      hover:text-emerald-600"
+    >
 
-              title="Assign Lead"
+      <UserCheck size={18} />
 
-              className="rounded-xl p-2 text-slate-500 transition-all duration-200 hover:-translate-y-0.5
+    </button>
 
-hover:scale-105
-
-active:scale-95 hover:bg-emerald-100 hover:text-emerald-600"
-
-            >
-
-              <UserCheck size={18} />
-
-            </button>
-
-            <button
-
-              onClick={() => onFollowUp?.(lead)}
-
-              title="Add Follow-up"
-
-              className="rounded-xl p-2 text-slate-500 transition-all duration-200 hover:-translate-y-0.5
-
-hover:scale-105
-
-active:scale-95 hover:bg-violet-100 hover:text-violet-600"
-
-            >
-
-              <CalendarDays size={18} />
-
-            </button>
+  )
+}
 
           </div>
 

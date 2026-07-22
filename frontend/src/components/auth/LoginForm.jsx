@@ -35,16 +35,29 @@ const onSubmit = async (formData) => {
   try {
 
     setLoading(true);
+  const response = await login(formData);
 
-    const response = await login(formData);
+if (response.success) {
 
-    if (response.success) {
+  toast.success("Welcome Back 👋");
 
-      toast.success("Welcome Back 👋");
+  const role = response.data.user.role;
 
-      navigate("/dashboard");
+  switch (role) {
 
-    }
+    case "ADMIN":
+      navigate("/dashboard", { replace: true });
+      break;
+
+    case "COUNSELLOR":
+      navigate("/employee/dashboard", { replace: true });
+      break;
+
+    default:
+      toast.error("Unauthorized Role");
+      navigate("/", { replace: true });
+  }
+}
 
   } catch (error) {
 

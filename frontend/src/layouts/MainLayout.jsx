@@ -5,33 +5,43 @@ import Topbar from "../components/layout/Topbar/Topbar";
 import PageContainer from "../components/PageContainer/PageContainer";
 
 const MainLayout = () => {
-  return (
-    <div className="flex min-h-screen bg-slate-100">
 
-      {/* ================= Sidebar ================= */}
+  return (
+
+    <div className="flex min-h-screen bg-slate-100">
 
       <Sidebar />
 
-      {/* ================= Main Area ================= */}
+      <div
+  className="flex flex-1 flex-col"
+  style={{
+    marginLeft: "280px",
+    width: "calc(100% - 280px)",
+  }}
+>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="sticky top-0 z-30 bg-white">
 
-        {/* ================= Topbar ================= */}
+          <Topbar />
 
-        <Topbar />
+        </div>
 
-        {/* ================= Page ================= */}
+        <main className="flex-1 overflow-y-auto">
 
-        <PageContainer>
+          <PageContainer>
 
-          <Outlet />
+            <Outlet />
 
-        </PageContainer>
+          </PageContainer>
+
+        </main>
 
       </div>
 
     </div>
+
   );
+
 };
 
 export default MainLayout;

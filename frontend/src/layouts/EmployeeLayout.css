@@ -1,0 +1,76 @@
+/* ===========================================
+   Employee Layout
+=========================================== */
+
+.employee-layout {
+  display: flex;
+  min-height: 100vh;
+  background: #f5f7fb;
+}
+
+/* ===========================================
+   Main Section
+=========================================== */
+
+.employee-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin-left: 270px;
+  transition: margin-left 0.3s ease;
+}
+
+/* ===========================================
+   Page Content
+=========================================== */
+
+.employee-content {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  background: #f5f7fb;
+}
+
+/* ===========================================
+   Scrollbar
+=========================================== */
+
+.employee-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.employee-content::-webkit-scrollbar-thumb {
+  background: #c7cdd6;
+  border-radius: 20px;
+}
+
+.employee-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ===========================================
+   Responsive
+=========================================== */
+
+@media (max-width: 992px) {
+  .employee-main {
+    margin-left: 0;
+  }
+
+  .employee-content {
+    padding: 18px;
+  }
+}
+
+@media (max-width: 768px) {
+  .employee-content {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 576px) {
+  .employee-content {
+    padding: 12px;
+  }
+}
