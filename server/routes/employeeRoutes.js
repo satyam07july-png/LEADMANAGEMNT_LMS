@@ -21,7 +21,7 @@ import {
     validateUpdateEmployee,
     validateEmployeeId,
     validateEmployeeFilters,
-} from "../validators/employee.Validator.js";
+} from "../validators/employee.validator.js";
 
 import {
   getMyLeadsController,
