@@ -14,6 +14,7 @@ import MainLayout from "../layouts/MainLayout";
 import EmployeeRoutes from "./EmployeeRoutes";
 import ProtectedRoute from "./ProtectedRoute";
 import RoleProtectedRoute from "./RoleProtectedRoute";
+import MyLeads from "../pages/employee/MyLeads";
 
 const AppRoutes = () => {
   return (
@@ -65,6 +66,11 @@ const AppRoutes = () => {
           />
 
         </Route>
+
+        <Route
+    path="/employee/my-leads"
+    element={<MyLeads />}
+/>
 
       </Route>
 

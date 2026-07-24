@@ -1,5 +1,5 @@
 import "./RecentLeadsTable.css";
-import { maskMobileNumber } from "../../../utils/maskMobileNumber";
+import { maskPhone } from "../../../utils/maskPhone";
 import { useNavigate } from "react-router-dom";
 
 const RecentLeadsTable = ({ leads = [] }) => {
@@ -53,7 +53,7 @@ const RecentLeadsTable = ({ leads = [] }) => {
                                     <td>{lead.full_name}</td>
 
                                     <td>
-                                        {maskMobileNumber(lead.mobile)}
+                                        {maskPhone(lead.mobile)}
                                     </td>
 
                                     <td>

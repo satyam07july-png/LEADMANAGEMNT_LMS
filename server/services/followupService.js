@@ -1046,88 +1046,238 @@ export async function bulkDeleteFollowupsService(
   payload,
   currentUser
 ) {
-
   return await withTransaction(async (client) => {
 
     const followupIds =
-      await validateBulkFollowupIds(
-        payload.followupIds
-      );
+      await validateBulkFollowupIds(payload.followupIds);
 
-    const deleted =
-      await bulkSoftDeleteFollowupsRepository(
-        client,
-        followupIds,
-        currentUser.id
-      );
+    const successfulIds = [];
+    const failedIds = [];
+
+    for (const followupId of followupIds) {
+
+      try {
+
+        const followup = await validateFollowup(
+          followupId,
+          client
+        );
+
+        await verifyOwnership(
+          followupId,
+          currentUser,
+          client
+        );
+
+        if (followup.is_deleted) {
+          failedIds.push({
+            id: followupId,
+            reason: "Already deleted."
+          });
+          continue;
+        }
+
+        if (followup.status === FOLLOWUP_STATUS.COMPLETED) {
+          failedIds.push({
+            id: followupId,
+            reason: "Completed follow-up cannot be deleted."
+          });
+          continue;
+        }
+
+        await softDeleteFollowupRepository(
+          client,
+          followupId,
+          currentUser.id
+        );
+
+        await createActivityLog(
+          {
+            leadId: followup.lead_id,
+            action: "FOLLOWUP_BULK_DELETED",
+            description: "Bulk follow-up deleted.",
+            createdBy: currentUser.id,
+          },
+          client
+        );
+
+        successfulIds.push(followupId);
+
+      } catch (error) {
+
+        failedIds.push({
+          id: followupId,
+          reason: error.message,
+        });
+
+      }
+
+    }
 
     return {
-      total: deleted.length,
-      followups: deleted,
+      processed: successfulIds.length,
+      failed: failedIds.length,
+      successfulIds,
+      failedIds,
     };
 
   });
-
 }
 
 export async function bulkRestoreFollowupsService(
   payload,
   currentUser
 ) {
-
   return await withTransaction(async (client) => {
 
     const followupIds =
-      await validateBulkFollowupIds(
-        payload.followupIds
-      );
+      await validateBulkFollowupIds(payload.followupIds);
 
-    const restored =
-      await bulkRestoreFollowupsRepository(
-        client,
-        followupIds,
-        currentUser.id
-      );
+    const successfulIds = [];
+    const failedIds = [];
+
+    for (const followupId of followupIds) {
+
+      try {
+
+        const followup = await validateFollowup(
+          followupId,
+          client,
+          true
+        );
+
+        await verifyOwnership(
+          followupId,
+          currentUser,
+          client
+        );
+
+        if (!followup.is_deleted) {
+          failedIds.push({
+            id: followupId,
+            reason: "Follow-up is already active."
+          });
+          continue;
+        }
+
+        await restoreFollowupRepository(
+          client,
+          followupId,
+          currentUser.id
+        );
+
+        await createActivityLog(
+          {
+            leadId: followup.lead_id,
+            action: "FOLLOWUP_BULK_RESTORED",
+            description: "Bulk follow-up restored.",
+            createdBy: currentUser.id,
+          },
+          client
+        );
+
+        successfulIds.push(followupId);
+
+      } catch (error) {
+
+        failedIds.push({
+          id: followupId,
+          reason: error.message,
+        });
+
+      }
+
+    }
 
     return {
-      total: restored.length,
-      followups: restored,
+      processed: successfulIds.length,
+      failed: failedIds.length,
+      successfulIds,
+      failedIds,
     };
 
   });
-
 }
 
 export async function bulkAssignFollowupsService(
   payload,
   currentUser
 ) {
-
   return await withTransaction(async (client) => {
 
     const followupIds =
-      await validateBulkFollowupIds(
-        payload.followupIds
-      );
+      await validateBulkFollowupIds(payload.followupIds);
 
     await validateEmployee(
       payload.employeeId,
       client
     );
 
-    const assigned =
-      await bulkAssignFollowupsRepository(
-        client,
-        followupIds,
-        payload.employeeId,
-        currentUser.id
-      );
+    const successfulIds = [];
+    const failedIds = [];
+
+    for (const followupId of followupIds) {
+
+      try {
+
+        const followup = await validateFollowup(
+          followupId,
+          client
+        );
+
+        await verifyOwnership(
+          followupId,
+          currentUser,
+          client
+        );
+
+        if (followup.employee_id == payload.employeeId) {
+          failedIds.push({
+            id: followupId,
+            reason: "Already assigned."
+          });
+          continue;
+        }
+
+        await updateFollowupRepository(
+          client,
+          followupId,
+          {
+            employee_id: payload.employeeId,
+            updated_by: currentUser.id,
+          }
+        );
+
+        await createActivityLog(
+          {
+            leadId: followup.lead_id,
+            action: "FOLLOWUP_BULK_ASSIGNED",
+            description: "Bulk follow-up assigned.",
+            createdBy: currentUser.id,
+          },
+          client
+        );
+
+        successfulIds.push(followupId);
+
+      } catch (error) {
+
+        failedIds.push({
+          id: followupId,
+          reason: error.message,
+        });
+
+      }
+
+    }
 
     return {
-      total: assigned.length,
-      followups: assigned,
+      processed: successfulIds.length,
+      failed: failedIds.length,
+      successfulIds,
+      failedIds,
     };
 
   });
-
 }
+

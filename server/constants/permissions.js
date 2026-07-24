@@ -1,42 +1,41 @@
-/**
- * =====================================================
- * Permissions
- * Project : IEM Admissions CRM
- * =====================================================
- */
+const PERMISSIONS = Object.freeze({
 
-export const PERMISSIONS = Object.freeze({
+    // Dashboard
+    VIEW_DASHBOARD: "VIEW_DASHBOARD",
 
-  // Lead
-  CREATE_LEAD: "create_lead",
-  VIEW_LEAD: "view_lead",
-  UPDATE_LEAD: "update_lead",
-  DELETE_LEAD: "delete_lead",
-  ASSIGN_LEAD: "assign_lead",
+    // Employee
+    CREATE_EMPLOYEE: "CREATE_EMPLOYEE",
+    VIEW_EMPLOYEE: "VIEW_EMPLOYEE",
+    UPDATE_EMPLOYEE: "UPDATE_EMPLOYEE",
+    DELETE_EMPLOYEE: "DELETE_EMPLOYEE",
+    RESTORE_EMPLOYEE: "RESTORE_EMPLOYEE",
 
-  // Employee
-  CREATE_EMPLOYEE: "create_employee",
-  VIEW_EMPLOYEE: "view_employee",
-  UPDATE_EMPLOYEE: "update_employee",
-  DELETE_EMPLOYEE: "delete_employee",
+    // Lead
+    CREATE_LEAD: "CREATE_LEAD",
+    VIEW_LEAD: "VIEW_LEAD",
+    UPDATE_LEAD: "UPDATE_LEAD",
+    DELETE_LEAD: "DELETE_LEAD",
+    ASSIGN_LEAD: "ASSIGN_LEAD",
 
-  // Course
-  CREATE_COURSE: "create_course",
-  VIEW_COURSE: "view_course",
-  UPDATE_COURSE: "update_course",
-  DELETE_COURSE: "delete_course",
+    // Followup
+    CREATE_FOLLOWUP: "CREATE_FOLLOWUP",
+    VIEW_FOLLOWUP: "VIEW_FOLLOWUP",
+    UPDATE_FOLLOWUP: "UPDATE_FOLLOWUP",
+    DELETE_FOLLOWUP: "DELETE_FOLLOWUP",
+    COMPLETE_FOLLOWUP: "COMPLETE_FOLLOWUP",
+    RESTORE_FOLLOWUP: "RESTORE_FOLLOWUP",
 
-  // Department
-  CREATE_DEPARTMENT: "create_department",
-  VIEW_DEPARTMENT: "view_department",
-  UPDATE_DEPARTMENT: "update_department",
-  DELETE_DEPARTMENT: "delete_department",
+    // Course
+    CREATE_COURSE: "CREATE_COURSE",
+    VIEW_COURSE: "VIEW_COURSE",
+    UPDATE_COURSE: "UPDATE_COURSE",
+    DELETE_COURSE: "DELETE_COURSE",
 
-  // Dashboard
-  VIEW_DASHBOARD: "view_dashboard",
-
-  // User
-  MANAGE_USERS: "manage_users",
+    // Department
+    CREATE_DEPARTMENT: "CREATE_DEPARTMENT",
+    VIEW_DEPARTMENT: "VIEW_DEPARTMENT",
+    UPDATE_DEPARTMENT: "UPDATE_DEPARTMENT",
+    DELETE_DEPARTMENT: "DELETE_DEPARTMENT",
 
 });
 

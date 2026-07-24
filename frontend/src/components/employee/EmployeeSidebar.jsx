@@ -8,8 +8,9 @@ import {
   LogOut,
 } from "lucide-react";
 
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import "./EmployeeSidebar.css";
+import { useAuth } from "../../context/AuthContext";
 
 const menuItems = [
   {
@@ -45,6 +46,20 @@ const menuItems = [
 ];
 
 const EmployeeSidebar = () => {
+
+  const navigate = useNavigate();
+  const { logout } = useAuth();
+
+  const handleLogout = () => {
+
+    logout();
+
+    navigate("/login", {
+      replace: true,
+    });
+
+  };
+
   return (
     <aside className="employee-sidebar">
 
@@ -68,7 +83,6 @@ const EmployeeSidebar = () => {
               }
             >
               <Icon size={20} />
-
               <span>{item.title}</span>
             </NavLink>
           );
@@ -76,7 +90,10 @@ const EmployeeSidebar = () => {
       </nav>
 
       <div className="employee-sidebar-footer">
-        <button className="logout-btn">
+        <button
+          className="logout-btn"
+          onClick={handleLogout}
+        >
           <LogOut size={18} />
           <span>Logout</span>
         </button>

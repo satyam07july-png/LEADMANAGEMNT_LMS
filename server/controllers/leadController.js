@@ -271,6 +271,8 @@ export const updateLeadStatus = asyncHandler(async (req, res) => {
 
     req.body.status,
 
+    req.body.feedback,
+
     req.user,
 
     req

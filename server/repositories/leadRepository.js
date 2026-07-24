@@ -494,6 +494,175 @@ export const getLeadsRepository = async (filters) => {
 
 /**
  * =====================================================
+ * Get My Leads (Employee)
+ * =====================================================
+ */
+
+export const getMyLeadsRepository = async (filters) => {
+
+  const {
+    employeeId,
+    page = 1,
+    limit = 10,
+    search = "",
+    status,
+    priority,
+    sortBy = "created_at",
+    order = "DESC",
+  } = filters;
+
+  const values = [employeeId];
+  let index = 2;
+
+  let whereClause = `
+    WHERE
+      l.is_deleted = FALSE
+      AND l.assigned_to = $1
+  `;
+
+  // ==========================
+  // Search
+  // ==========================
+
+  if (search) {
+
+    whereClause += `
+      AND (
+        l.lead_code ILIKE $${index}
+        OR l.full_name ILIKE $${index}
+        OR l.mobile ILIKE $${index}
+        OR l.email ILIKE $${index}
+      )
+    `;
+
+    values.push(`%${search}%`);
+    index++;
+
+  }
+
+  // ==========================
+  // Status
+  // ==========================
+
+  if (status) {
+
+    whereClause += `
+      AND l.status = $${index}
+    `;
+
+    values.push(status);
+    index++;
+
+  }
+
+  // ==========================
+  // Priority
+  // ==========================
+
+  if (priority) {
+
+    whereClause += `
+      AND l.priority = $${index}
+    `;
+
+    values.push(priority);
+    index++;
+
+  }
+
+  // ==========================
+  // Count
+  // ==========================
+
+  const countQuery = `
+    SELECT COUNT(*) AS total
+    FROM leads l
+    ${whereClause}
+  `;
+
+  const countResult = await pool.query(
+    countQuery,
+    values
+  );
+
+  const totalRecords = Number(
+    countResult.rows[0].total
+  );
+
+  const allowedSort = [
+    "created_at",
+    "full_name",
+    "lead_code",
+    "status",
+    "priority",
+  ];
+
+  const sortColumn = allowedSort.includes(sortBy)
+    ? sortBy
+    : "created_at";
+
+  const sortOrder =
+    order.toUpperCase() === "ASC"
+      ? "ASC"
+      : "DESC";
+
+  const query = `
+    SELECT
+      l.*,
+      cp.campaign_name,
+      e.full_name AS assigned_employee
+
+    FROM leads l
+
+    LEFT JOIN campaigns cp
+      ON cp.id = l.campaign_id
+
+    LEFT JOIN employees e
+      ON e.id = l.assigned_to
+
+    ${whereClause}
+
+    ORDER BY l.${sortColumn} ${sortOrder}
+
+    LIMIT $${index}
+
+    OFFSET $${index + 1}
+  `;
+
+  values.push(Number(limit));
+
+  values.push(
+    (Number(page) - 1) * Number(limit)
+  );
+
+  const result = await pool.query(
+    query,
+    values
+  );
+
+  return {
+
+    leads: result.rows,
+
+    pagination: {
+
+      page: Number(page),
+
+      limit: Number(limit),
+
+      totalRecords,
+
+      totalPages:
+        Math.ceil(totalRecords / Number(limit)) || 1,
+
+    },
+
+  };
+
+};
+
+/**
+ * =====================================================
  * Update Lead
  * =====================================================
  */
@@ -777,35 +946,39 @@ export const updateLeadStatusRepository = async (
   client,
   id,
   status,
+  feedback,
   updatedBy
 ) => {
 
   const query = `
-    UPDATE leads
+   UPDATE leads
 
-    SET
+SET
 
-      status = $1,
+status = $1,
 
-      updated_by = $2,
+feedback = $2,
 
-      updated_at = CURRENT_TIMESTAMP
+updated_by = $3,
 
-    WHERE id = $3
+updated_at = CURRENT_TIMESTAMP
 
-    RETURNING *;
+WHERE id = $4
+
+RETURNING *;
   `;
 
-  const result =
-    await client.query(query, [
+  const result = await client.query(query, [
 
-      status,
+  status,
 
-      updatedBy,
+  feedback || null,
 
-      id,
+  updatedBy,
 
-    ]);
+  id,
+
+]);
 
   return result.rows[0];
 
@@ -1022,43 +1195,34 @@ export const addLeadTimelineRepository = async (
  * =====================================================
  */
 
-export const getLeadTimelineRepository = async (
-  leadId
-) => {
+export const getLeadTimelineRepository = async (leadId) => {
 
   const query = `
     SELECT
+      lt.id,
+      lt.activity_type,
+      lt.title,
+      lt.description,
+      lt.old_value,
+      lt.new_value,
+      lt.created_at,
 
-      lt.*,
-
-      e.full_name AS created_by_name
+      e.id AS employee_id,
+      e.full_name AS employee_name
 
     FROM lead_timeline lt
 
     LEFT JOIN employees e
-
-      ON lt.created_by = e.id
+      ON lt.employee_id = e.id
 
     WHERE lt.lead_id = $1
 
     ORDER BY lt.created_at DESC;
   `;
 
-  const result =
-    await pool.query(
-
-      query,
-
-      [
-
-        leadId,
-
-      ]
-
-    );
+  const result = await pool.query(query, [leadId]);
 
   return result.rows;
-
 };
 
 // =====================================================

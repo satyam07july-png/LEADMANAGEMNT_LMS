@@ -5,8 +5,20 @@ import {
   Bell,
   ChevronDown,
 } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
 
 const EmployeeTopbar = () => {
+
+  // Pehle user lo
+  const { user } = useAuth();
+
+  // Fir initials banao
+  const initials = (user?.full_name || user?.name || "Employee")
+    .split(" ")
+    .map((name) => name[0])
+    .join("")
+    .substring(0, 2)
+    .toUpperCase();
 
   const today = new Date().toLocaleDateString("en-IN", {
     weekday: "long",
@@ -25,14 +37,12 @@ const EmployeeTopbar = () => {
         </button>
 
         <div className="topbar-search">
-
           <Search size={18} />
 
           <input
             type="text"
             placeholder="Search leads, admissions, follow-ups..."
           />
-
         </div>
 
       </div>
@@ -44,24 +54,19 @@ const EmployeeTopbar = () => {
         </div>
 
         <button className="notification-btn">
-
           <Bell size={21} />
-
-          <span className="notification-badge">
-            0
-          </span>
-
+          <span className="notification-badge">0</span>
         </button>
+
+        <div className="profile-avatar">
+          {initials}
+        </div>
 
         <div className="profile-box">
 
-          <div className="profile-avatar">
-            DM
-          </div>
-
           <div className="profile-info">
-            <h4>Loading...</h4>
-            <p>Employee</p>
+            <h4>{user?.full_name || user?.name || "Employee"}</h4>
+            <p>{user?.role || "Employee"}</p>
           </div>
 
           <ChevronDown size={18} />

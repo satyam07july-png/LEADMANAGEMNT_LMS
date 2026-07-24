@@ -125,18 +125,40 @@ body("captured_at").optional(),
 export const updateLeadStatusValidator = [
 
   param("id")
-    .isInt(),
+    .isInt()
+    .withMessage("Invalid lead id."),
 
   body("status")
+    .trim()
+    .notEmpty()
+    .withMessage("Status is required.")
     .isIn([
-      "NEW",
-      "CONTACTED",
-      "FOLLOW_UP",
-      "QUALIFIED",
-      "ADMISSION_DONE",
-      "LOST",
+      "PENDING",
+      "COMPLETED",
+      "REJECTED",
     ])
     .withMessage("Invalid lead status."),
+
+  body("feedback")
+    .optional()
+    .trim()
+    .isLength({ max: 1000 })
+    .withMessage("Feedback cannot exceed 1000 characters."),
+
+  body("feedback").custom((value, { req }) => {
+
+    if (
+      req.body.status === "REJECTED" &&
+      (!value || !value.trim())
+    ) {
+      throw new Error(
+        "Feedback is required when rejecting a lead."
+      );
+    }
+
+    return true;
+
+  }),
 
 ];
 

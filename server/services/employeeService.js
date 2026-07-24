@@ -1,4 +1,4 @@
-import pool from "../config/db.js";
+import { withTransaction } from "../config/db.js";
 import ApiError from "../utils/ApiError.js";
 import auditLogger from "../utils/auditLogger.js";
 import { isValidRole } from "../constants/roles.js";
@@ -9,136 +9,399 @@ import {
     findUserByEmailRepository,
     updateUserRepository,
     softDeleteUserRepository,
-    restoreUserRepository
+    restoreUserRepository,
 } from "../repositories/userRepository.js";
 
 import {
-  
-  getNextEmployeeCodeRepository,
-  createEmployeeRepository,
-  findEmployeeByEmailRepository,
-  findEmployeeByMobileRepository,
-  getEmployeesRepository,
-  findEmployeeByIdRepository,
-  updateEmployeeRepository,
-  deleteEmployeeRepository,
-  restoreEmployeeRepository,
-  getEmployeeStatisticsRepository,
-  
- 
+    getNextEmployeeCodeRepository,
+    createEmployeeRepository,
+
+    findEmployeeByIdRepository,
+    findEmployeeByEmailRepository,
+    findEmployeeByMobileRepository,
+
+    updateEmployeeRepository,
+    deleteEmployeeRepository,
+    restoreEmployeeRepository,
+
+    getEmployeesRepository,
+    getEmployeeStatisticsRepository,
+
 } from "../repositories/employeeRepository.js";
 
+import {
+  getMyLeadsRepository,
+} from "../repositories/leadrepository.js";
 
+import {
+  findEmployeeByUserIdRepository,
+} from "../repositories/employeerepository.js";
+
+/* =====================================================
+ * Helpers
+ * ===================================================== */
+
+const generateEmployeeCode = (sequence) => {
+    const prefix = process.env.EMPLOYEE_CODE_PREFIX || "EMP";
+    return `${prefix}${String(sequence).padStart(6, "0")}`;
+};
+
+const safeAuditLog = (payload) => {
+    try {
+        auditLogger(payload);
+    } catch (error) {
+        console.error("Audit Logger Error:", error.message);
+    }
+};
+
+/* =====================================================
+ * Create Employee
+ * ===================================================== */
 
 export const createEmployeeService = async (
-  employeeData,
-  currentUser,
-  req
+    employeeData,
+    currentUser,
+    req
 ) => {
+     
 
-  const client = await pool.connect();
 
-  try {
+    // Normalize Data
+    employeeData.email = employeeData.email.trim().toLowerCase();
+    employeeData.full_name = employeeData.full_name.trim();
+    employeeData.mobile = employeeData.mobile.trim();
 
-    await client.query("BEGIN");
-
-    // Duplicate Email
-     const existingEmployee =
-      await findEmployeeByEmailRepository(employeeData.email);
+    // Duplicate Employee Email
+    const existingEmployee =
+        await findEmployeeByEmailRepository(employeeData.email);
 
     if (existingEmployee) {
-      throw new ApiError(409, "Employee email already exists.");
+        throw new ApiError(
+            409,
+            "Employee email already exists."
+        );
     }
-    // exist user
-    const existingUser =
-    await findUserByEmailRepository(employeeData.email);
 
-if (existingUser) {
-    throw new ApiError(
-        409,
-        "User email already exists."
-    );
-}
+    // Duplicate User Email
+    const existingUser =
+        await findUserByEmailRepository(employeeData.email);
+
+    if (existingUser) {
+        throw new ApiError(
+            409,
+            "User email already exists."
+        );
+    }
 
     // Duplicate Mobile
     const existingMobile =
-      await findEmployeeByMobileRepository(employeeData.mobile);
+        await findEmployeeByMobileRepository(employeeData.mobile);
 
     if (existingMobile) {
-      throw new ApiError(409, "Mobile number already exists.");
+        throw new ApiError(
+            409,
+            "Mobile number already exists."
+        );
     }
 
     // Role Validation
     if (!isValidRole(employeeData.role)) {
-      throw new ApiError(400, "Invalid employee role.");
+        throw new ApiError(
+            400,
+            "Invalid employee role."
+        );
     }
 
-    // Employee Code Generation
-    const sequence =
-      await getNextEmployeeCodeRepository(client);
+    return await withTransaction(async (client) => {
 
-    const employeeCode =
-      `${process.env.EMPLOYEE_CODE_PREFIX || "EMP"}${String(sequence).padStart(6, "0")}`;
-      
-    // temp passweord
-    const temporaryPassword =
-employeeData.password ||
-process.env.DEFAULT_EMPLOYEE_PASSWORD;
+        // Employee Code
+        const sequence =
+            await getNextEmployeeCodeRepository(client);
 
-const hashedPassword =
-    await bcrypt.hash(
-        temporaryPassword,
-        10
-    );
-   // create user
-    const user =
-    await createUserRepository(
-        client,
-        {
-            full_name: employeeData.full_name,
-            email: employeeData.email,
-            password: hashedPassword,
-            role: employeeData.role
-        }
-    );
+        const employeeCode =
+            generateEmployeeCode(sequence);
 
-    // Create Employee
-    const employee =
-    await createEmployeeRepository(
-        client,
-        {
-            ...employeeData,
-            user_id: user.id,
-            employee_code: employeeCode,
-            created_by: currentUser.id
-        }
-    );
+        // Password
+        const temporaryPassword =
+            employeeData.password ||
+            process.env.DEFAULT_EMPLOYEE_PASSWORD;
 
-    // Audit Log
-    auditLogger({
-      action: "EMPLOYEE_CREATED",
-      module: "EMPLOYEE",
-      userId: currentUser.id,
-      role: currentUser.role,
-      entityId: employee.id,
-      requestId: req.requestId,
-      ip: req.ip,
+        const hashedPassword =
+            await bcrypt.hash(
+                temporaryPassword,
+                10
+            );
+
+        // Create User
+        const user =
+            await createUserRepository(
+                client,
+                {
+                    full_name: employeeData.full_name,
+                    email: employeeData.email,
+                    password: hashedPassword,
+                    role: employeeData.role,
+                }
+            );
+
+        // Create Employee
+        const employee =
+            await createEmployeeRepository(
+                client,
+                {
+                    ...employeeData,
+                    user_id: user.id,
+                    employee_code: employeeCode,
+                    created_by: currentUser.id,
+                }
+            );
+
+        // Audit Log
+        safeAuditLog({
+            action: "EMPLOYEE_CREATED",
+            module: "EMPLOYEE",
+            userId: currentUser.id,
+            role: currentUser.role,
+            entityId: employee.id,
+            requestId: req.requestId,
+            ip: req.ip,
+        });
+
+        return employee;
     });
 
-    await client.query("COMMIT");
+};
 
-    return employee;
+/* =====================================================
+ * Update Employee
+ * ===================================================== */
 
-  } catch (error) {
+export const updateEmployeeService = async (
+    id,
+    employeeData,
+    currentUser,
+    req
+) => {
 
-    await client.query("ROLLBACK");
-    throw error;
+    // Normalize Data
+    if (employeeData.email) {
+        employeeData.email =
+            employeeData.email.trim().toLowerCase();
+    }
 
-  } finally {
+    if (employeeData.full_name) {
+        employeeData.full_name =
+            employeeData.full_name.trim();
+    }
 
-    client.release();
+    if (employeeData.mobile) {
+        employeeData.mobile =
+            employeeData.mobile.trim();
+    }
 
-  }
+    return await withTransaction(async (client) => {
+
+        // Employee Exists
+        const employee =
+            await findEmployeeByIdRepository(id);
+
+        if (!employee) {
+            throw new ApiError(
+                404,
+                "Employee not found."
+            );
+        }
+
+        // Duplicate Email Check
+        if (employeeData.email) {
+
+            const existingEmail =
+                await findEmployeeByEmailRepository(
+                    employeeData.email
+                );
+
+            if (
+                existingEmail &&
+                existingEmail.id !== Number(id)
+            ) {
+                throw new ApiError(
+                    409,
+                    "Employee email already exists."
+                );
+            }
+        }
+
+        // Duplicate Mobile Check
+        if (employeeData.mobile) {
+
+            const existingMobile =
+                await findEmployeeByMobileRepository(
+                    employeeData.mobile
+                );
+
+            if (
+                existingMobile &&
+                existingMobile.id !== Number(id)
+            ) {
+                throw new ApiError(
+                    409,
+                    "Mobile number already exists."
+                );
+            }
+        }
+
+        // Role Validation
+        if (
+            employeeData.role &&
+            !isValidRole(employeeData.role)
+        ) {
+            throw new ApiError(
+                400,
+                "Invalid employee role."
+            );
+        }
+
+        // Update Employee
+        const updatedEmployee =
+            await updateEmployeeRepository(
+                client,
+                id,
+                {
+                    ...employeeData,
+                    updated_by: currentUser.id,
+                }
+            );
+
+        // Update User
+        await updateUserRepository(
+            client,
+            employee.user_id,
+            {
+                full_name:
+                    employeeData.full_name ??
+                    employee.full_name,
+
+                role:
+                    employeeData.role ??
+                    employee.role,
+            }
+        );
+
+        safeAuditLog({
+            action: "EMPLOYEE_UPDATED",
+            module: "EMPLOYEE",
+            userId: currentUser.id,
+            role: currentUser.role,
+            entityId: id,
+            requestId: req.requestId,
+            ip: req.ip,
+        });
+
+        return updatedEmployee;
+
+    });
+
+};
+
+/* =====================================================
+ * Delete Employee
+ * ===================================================== */
+
+export const deleteEmployeeService = async (
+    id,
+    currentUser,
+    req
+) => {
+
+    return await withTransaction(async (client) => {
+
+        const employee =
+            await findEmployeeByIdRepository(id);
+
+        if (!employee) {
+
+            throw new ApiError(
+                404,
+                "Employee not found."
+            );
+
+        }
+
+        const deletedEmployee =
+            await deleteEmployeeRepository(
+                client,
+                id,
+                currentUser.id
+            );
+
+        await softDeleteUserRepository(
+            client,
+            employee.user_id
+        );
+
+        safeAuditLog({
+            action: "EMPLOYEE_DELETED",
+            module: "EMPLOYEE",
+            userId: currentUser.id,
+            role: currentUser.role,
+            entityId: id,
+            requestId: req.requestId,
+            ip: req.ip,
+        });
+
+        return deletedEmployee;
+
+    });
+
+};
+
+/* =====================================================
+ * Restore Employee
+ * ===================================================== */
+
+export const restoreEmployeeService = async (
+    id,
+    currentUser,
+    req
+) => {
+
+    return await withTransaction(async (client) => {
+
+        const employee =
+            await restoreEmployeeRepository(
+                client,
+                id,
+                currentUser.id
+            );
+
+        // FIXED BUG
+        if (!employee) {
+
+            throw new ApiError(
+                404,
+                "Employee not found."
+            );
+
+        }
+
+        await restoreUserRepository(
+            client,
+            employee.user_id
+        );
+
+        safeAuditLog({
+            action: "EMPLOYEE_RESTORED",
+            module: "EMPLOYEE",
+            userId: currentUser.id,
+            role: currentUser.role,
+            entityId: id,
+            requestId: req.requestId,
+            ip: req.ip,
+        });
+
+        return employee;
+
+    });
 
 };
 
@@ -148,9 +411,9 @@ const hashedPassword =
  * =====================================================
  */
 
-export const getAllEmployeesService = async (filters) => {
+export const getAllEmployeesService = async (filters = {}) => {
 
-  return await getEmployeesRepository(filters);
+    return await getEmployeesRepository(filters);
 
 };
 
@@ -160,229 +423,45 @@ export const getAllEmployeesService = async (filters) => {
  * =====================================================
  */
 
-export const getEmployeeByIdService = async (id) => {
-
-  const employee =
-    await findEmployeeByIdRepository(id);
-
-  if (!employee) {
-
-    throw new ApiError(
-      404,
-      "Employee not found."
-    );
-
-  }
-
-  return employee;
-
-};
-
-/**
- * =====================================================
- * Update Employee
- * =====================================================
- */
-
-export const updateEmployeeService = async (
-  id,
-  employeeData,
-  currentUser,
-  req
+export const getEmployeeByIdService = async (
+    id,
+    currentUser
 ) => {
-
-  const client = await pool.connect();
-
-  try {
-
-    await client.query("BEGIN");
 
     const employee =
-      await findEmployeeByIdRepository(id);
+        await findEmployeeByIdRepository(id);
 
     if (!employee) {
-      throw new ApiError(
-        404,
-        "Employee not found."
-      );
+
+        throw new ApiError(
+            404,
+            "Employee not found."
+        );
+
     }
 
-    if (!isValidRole(employeeData.role)) {
-      throw new ApiError(
-        400,
-        "Invalid employee role."
-      );
+    // COUNSELLOR can only view their own profile
+    if (
+        currentUser.role === "COUNSELLOR" &&
+        employee.user_id !== currentUser.id
+    ) {
+
+        throw new ApiError(
+            403,
+            "You are not authorized to view this employee."
+        );
+
     }
-
-    const updatedEmployee =
-      await updateEmployeeRepository(
-        client,
-        id,
-        {
-          ...employeeData,
-          updated_by: currentUser.id,
-        }
-      );
-
-      await updateUserRepository(
-    client,
-    employee.user_id,
-    {
-        full_name: employeeData.full_name,
-        role: employeeData.role
-    }
-);
-
-    auditLogger({
-      action: "EMPLOYEE_UPDATED",
-      module: "EMPLOYEE",
-      userId: currentUser.id,
-      role: currentUser.role,
-      entityId: id,
-      requestId: req.requestId,
-      ip: req.ip,
-    });
-
-    await client.query("COMMIT");
-
-    return updatedEmployee;
-
-  } catch (error) {
-
-    await client.query("ROLLBACK");
-    throw error;
-
-  } finally {
-
-    client.release();
-
-  }
-
-};
-
-/**
- * =====================================================
- * Soft Delete Employee
- * =====================================================
- */
-
-export const deleteEmployeeService = async (
-  id,
-  currentUser,
-  req
-) => {
-
-  const client = await pool.connect();
-
-  try {
-
-    await client.query("BEGIN");
-
-    const employee =
-      await findEmployeeByIdRepository(id);
-
-    if (!employee) {
-      throw new ApiError(
-        404,
-        "Employee not found."
-      );
-    }
-
-    const deletedEmployee =
-      await deleteEmployeeRepository(
-        client,
-        id,
-        currentUser.id
-      );
-
-      await softDeleteUserRepository(
-    client,
-    employee.user_id
-);
-
-    auditLogger({
-      action: "EMPLOYEE_DELETED",
-      module: "EMPLOYEE",
-      userId: currentUser.id,
-      role: currentUser.role,
-      entityId: id,
-      requestId: req.requestId,
-      ip: req.ip,
-    });
-
-    await client.query("COMMIT");
-
-    return deletedEmployee;
-
-  } catch (error) {
-
-    await client.query("ROLLBACK");
-    throw error;
-
-  } finally {
-
-    client.release();
-
-  }
-
-};
-
-export const restoreEmployeeService = async (
-  id,
-  currentUser,
-  req
-) => {
-
-  const client = await pool.connect();
-
-  try {
-
-    await client.query("BEGIN");
-
-    const employee = await restoreEmployeeRepository(
-      client,
-      id,
-      currentUser.id
-    );
-
-    await restoreUserRepository(
-    client,
-    employee.user_id
-);
-
-    if (!employee) {
-      throw new ApiError(
-        404,
-        "Employee not found."
-      );
-    }
-
-    auditLogger({
-      action: "EMPLOYEE_RESTORED",
-      module: "EMPLOYEE",
-      userId: currentUser.id,
-      role: currentUser.role,
-      entityId: id,
-      requestId: req.requestId,
-      ip: req.ip,
-    });
-
-    await client.query("COMMIT");
 
     return employee;
 
-  } catch (error) {
-
-    await client.query("ROLLBACK");
-    throw error;
-
-  } finally {
-
-    client.release();
-
-  }
-
 };
+
+/**
+ * =====================================================
+ * Get Employee Statistics
+ * =====================================================
+ */
 
 export const getEmployeeStatisticsService = async () => {
 
@@ -390,3 +469,42 @@ export const getEmployeeStatisticsService = async () => {
 
 };
 
+/**
+ * =====================================================
+ * Get My Leads Service
+ * =====================================================
+ */
+
+export const getMyLeadsService = async (
+  userId,
+  filters
+) => {
+
+  // ==========================
+  // Find Employee
+  // ==========================
+
+  const employee =
+    await findEmployeeByUserIdRepository(userId);
+
+  if (!employee) {
+
+    throw new Error(
+      "Employee profile not found."
+    );
+
+  }
+
+  // ==========================
+  // Get Leads
+  // ==========================
+
+  return await getMyLeadsRepository({
+
+    employeeId: employee.id,
+
+    ...filters,
+
+  });
+
+};

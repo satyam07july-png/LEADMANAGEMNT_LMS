@@ -32,6 +32,12 @@ import {
   getLeadTimelineRepository,
 } from "../repositories/leadRepository.js";
 
+import {
+  addTimelineEventService,
+} from "../services/leadTimeline.service.js";
+
+import TIMELINE_ACTIVITY from "../constants/timelineActivity.js";
+
 /**
  * =====================================================
  * Create Lead
@@ -110,6 +116,15 @@ export const createLeadService = async (
         }
       );
 
+       await addTimelineEventService({
+  leadId: lead.id,
+  employeeId: lead.assigned_to || null,
+  activityType: TIMELINE_ACTIVITY.LEAD_CREATED,
+  title: "Lead Created",
+  description: `Lead ${lead.full_name} created successfully.`,
+});
+
+
     auditLogger({
 
       action: "LEAD_CREATED",
@@ -144,6 +159,7 @@ export const createLeadService = async (
 
   }
 
+ 
 };
 
 /**
@@ -522,6 +538,15 @@ export const assignLeadService = async (
 
       );
 
+
+      await addTimelineEventService({
+  leadId,
+  employeeId,
+  activityType: TIMELINE_ACTIVITY.LEAD_ASSIGNED,
+  title: "Lead Assigned",
+  description: `Lead assigned to ${employee.full_name}.`,
+});
+
     auditLogger({
 
       action: "LEAD_ASSIGNED",
@@ -567,6 +592,7 @@ export const assignLeadService = async (
 export const updateLeadStatusService = async (
   leadId,
   status,
+  feedback,
   currentUser,
   req
 ) => {
@@ -589,18 +615,37 @@ export const updateLeadStatusService = async (
 
     }
 
+    if (
+  status === "REJECTED" &&
+  (!feedback || !feedback.trim())
+) {
+  throw new ApiError(
+    400,
+    "Feedback is required when rejecting a lead."
+  );
+}
+
     const updatedLead =
-      await updateLeadStatusRepository(
+  await updateLeadStatusRepository(
+    client,
+    leadId,
+    status,
+    feedback,
+    currentUser.id
+  );
 
-        client,
-
-        leadId,
-
-        status,
-
-        currentUser.id
-
-      );
+      await addTimelineEventService({
+  leadId,
+  employeeId: lead.assigned_to,
+  activityType: TIMELINE_ACTIVITY.STATUS_CHANGED,
+  title: "Lead Status Updated",
+  description:
+  status === "REJECTED"
+    ? `Lead rejected. Reason: ${feedback}`
+    : `Status changed from ${lead.status} to ${status}.`,
+  oldValue: lead.status,
+  newValue: status,
+});
 
     auditLogger({
 
@@ -682,19 +727,13 @@ export const addLeadNoteService = async (
 
       );
 
-    await addLeadTimelineRepository(
-
-      client,
-
-      leadId,
-
-      "NOTE_ADDED",
-
-      note,
-
-      currentUser.id
-
-    );
+    await addTimelineEventService({
+  leadId,
+  employeeId: currentUser.id,
+  activityType: TIMELINE_ACTIVITY.NOTE_ADDED,
+  title: "Lead Note Added",
+  description: note,
+});
 
     auditLogger({
 

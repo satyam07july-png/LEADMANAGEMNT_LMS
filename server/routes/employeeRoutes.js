@@ -1,84 +1,129 @@
-import express from "express";
-
-import authMiddleware from "../middleware/authMiddleware.js";
-import roleMiddleware from "../middleware/roleMiddleware.js";
-import validate from "../middleware/validate.js";
-
-import ROLES from "../constants/roles.js";
+import { Router } from "express";
 
 import {
-    createEmployeeValidator,
-    updateEmployeeValidator
-} from "../validators/employee.validator.js";
-
-import {
-  createEmployee,
-  getAllEmployees,
-  getEmployeeById,
-  updateEmployee,
-  deleteEmployee,
-  restoreEmployee,
-  getEmployeeStatistics,
+    createEmployeeController,
+    getAllEmployeesController,
+    getEmployeeByIdController,
+    updateEmployeeController,
+    deleteEmployeeController,
+    restoreEmployeeController,
+    getEmployeeStatisticsController,
 } from "../controllers/employeeController.js";
 
-const router = express.Router();
+import authenticate from "../middleware/authMiddleware.js";
 
+import authorize from "../middleware/authorize.js";
+
+import PERMISSIONS from "../constants/permissions.js";
+
+import {
+    validateCreateEmployee,
+    validateUpdateEmployee,
+    validateEmployeeId,
+    validateEmployeeFilters,
+} from "../validators/employee.Validator.js";
+
+import {
+  getMyLeadsController,
+} from "../controllers/employeecontroller.js";
+
+const router = Router();
+
+/**
+ * =====================================================
+ * Create Employee
+ * =====================================================
+ */
 router.post(
-  "/",
-  authMiddleware,
-  roleMiddleware(ROLES.ADMIN),
-  createEmployeeValidator,
-  validate,
-  createEmployee
+    "/",
+    authenticate,
+    authorize(PERMISSIONS.CREATE_EMPLOYEE),
+    validateCreateEmployee,
+    createEmployeeController
 );
 
+/**
+ * =====================================================
+ * Get All Employees
+ * =====================================================
+ */
 router.get(
-  "/",
-  authMiddleware,
-  roleMiddleware(
-    ROLES.ADMIN,
-    ROLES.COUNSELLOR
-  ),
-  getAllEmployees
+    "/",
+    authenticate,
+    authorize(PERMISSIONS.VIEW_EMPLOYEE),
+    validateEmployeeFilters,
+    getAllEmployeesController
 );
 
+/**
+ * =====================================================
+ * Employee Statistics
+ * =====================================================
+ */
 router.get(
-  "/statistics",
-  authMiddleware,
-  roleMiddleware(
-    ROLES.ADMIN,
-    ROLES.COUNSELLOR
-  ),
-  getEmployeeStatistics
-);;
-
-router.get(
-  "/:id",
-  authMiddleware,
-  getEmployeeById
+    "/statistics",
+    authenticate,
+    authorize(PERMISSIONS.VIEW_EMPLOYEE),
+    getEmployeeStatisticsController
 );
 
+/**
+ * =====================================================
+ * Get Employee By ID
+ * =====================================================
+ */
+router.get(
+    "/:id",
+    authenticate,
+    authorize(PERMISSIONS.VIEW_EMPLOYEE),
+    validateEmployeeId,
+    getEmployeeByIdController
+);
+
+/**
+ * =====================================================
+ * Update Employee
+ * =====================================================
+ */
 router.put(
-  "/:id",
-  authMiddleware,
-  roleMiddleware(ROLES.ADMIN),
-  updateEmployeeValidator,
-  validate,
-  updateEmployee
+    "/:id",
+    authenticate,
+    authorize(PERMISSIONS.UPDATE_EMPLOYEE),
+    validateEmployeeId,
+    validateUpdateEmployee,
+    updateEmployeeController
 );
 
+/**
+ * =====================================================
+ * Delete Employee
+ * =====================================================
+ */
 router.delete(
-  "/:id",
-  authMiddleware,
-  roleMiddleware(ROLES.ADMIN),
-  deleteEmployee
+    "/:id",
+    authenticate,
+    authorize(PERMISSIONS.DELETE_EMPLOYEE),
+    validateEmployeeId,
+    deleteEmployeeController
 );
 
+/**
+ * =====================================================
+ * Restore Employee
+ * =====================================================
+ */
 router.patch(
-  "/:id/restore",
-  authMiddleware,
-  roleMiddleware(ROLES.ADMIN),
-  restoreEmployee
+    "/:id/restore",
+    authenticate,
+    authorize(PERMISSIONS.RESTORE_EMPLOYEE),
+    validateEmployeeId,
+    restoreEmployeeController
+);
+
+router.get(
+  "/my-leads",
+  authenticate,
+  getMyLeadsController
 );
 
 export default router;

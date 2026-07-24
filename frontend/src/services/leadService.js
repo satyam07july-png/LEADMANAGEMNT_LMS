@@ -71,19 +71,11 @@ export const restoreLead = async (id) => {
 // ===============================
 // Update Lead Status
 // ===============================
-
-export const updateLeadStatus = async (
-  id,
-  status
-) => {
-
+export const updateLeadStatus = async (leadId, data) => {
   const response = await axiosInstance.patch(
-    `/leads/${id}/status`,
-    {
-      status,
-    }
+    `/leads/${leadId}/status`,
+    data
   );
 
   return response.data;
-
 };

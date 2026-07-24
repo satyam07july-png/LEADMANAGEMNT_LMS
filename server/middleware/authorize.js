@@ -1,106 +1,83 @@
 import ApiError from "../utils/ApiError.js";
 import { HTTP_STATUS } from "../constants/httpStatus.js";
+
 import ROLES from "../constants/roles.js";
 import PERMISSIONS from "../constants/permissions.js";
-import ROLE_PERMISSIONS from "../constants/rolePermissions.js";
-
-/**
- * =====================================================
- * Role Permission Mapping
- * Project : IEM Admissions CRM
- * =====================================================
- */
 
 const ROLE_PERMISSIONS = Object.freeze({
 
-  [ROLES.ADMIN]: [
-    ...Object.values(PERMISSIONS),
-  ],
+    [ROLES.ADMIN]: [
+        ...Object.values(PERMISSIONS),
+    ],
 
-  [ROLES.MANAGER]: [
-    PERMISSIONS.VIEW_DASHBOARD,
+    [ROLES.COUNSELLOR]: [
 
-    PERMISSIONS.CREATE_LEAD,
-    PERMISSIONS.VIEW_LEAD,
-    PERMISSIONS.UPDATE_LEAD,
-    PERMISSIONS.ASSIGN_LEAD,
+        PERMISSIONS.VIEW_DASHBOARD,
 
-    PERMISSIONS.VIEW_EMPLOYEE,
+        PERMISSIONS.VIEW_LEAD,
+        PERMISSIONS.CREATE_LEAD,
+        PERMISSIONS.UPDATE_LEAD,
 
-    PERMISSIONS.VIEW_COURSE,
+        PERMISSIONS.VIEW_FOLLOWUP,
+        PERMISSIONS.CREATE_FOLLOWUP,
+        PERMISSIONS.UPDATE_FOLLOWUP,
+        PERMISSIONS.COMPLETE_FOLLOWUP,
 
-    PERMISSIONS.VIEW_DEPARTMENT,
-  ],
+        PERMISSIONS.VIEW_COURSE,
 
-  [ROLES.HR]: [
-    PERMISSIONS.CREATE_EMPLOYEE,
-    PERMISSIONS.VIEW_EMPLOYEE,
-    PERMISSIONS.UPDATE_EMPLOYEE,
-
-    PERMISSIONS.VIEW_DASHBOARD,
-  ],
-
-  [ROLES.COUNSELLOR]: [
-    PERMISSIONS.VIEW_LEAD,
-    PERMISSIONS.UPDATE_LEAD,
-
-    PERMISSIONS.VIEW_COURSE,
-
-    PERMISSIONS.VIEW_DASHBOARD,
-  ],
-
-  [ROLES.ACCOUNTANT]: [
-    PERMISSIONS.VIEW_DASHBOARD,
-  ],
-
-  [ROLES.STUDENT]: [],
+    ],
 
 });
 
-/**
- * =====================================================
- * Authorization Middleware
- * =====================================================
- */
-
 const authorize = (...requiredPermissions) => {
 
-  return (req, res, next) => {
+    return (req, res, next) => {
 
-    if (!req.user) {
-      return next(
-        new ApiError(
-          HTTP_STATUS.UNAUTHORIZED,
-          "Authentication required."
-        )
-      );
-    }
+        if (!req.user) {
 
-    const role = req.user.role;
+            return next(
 
-    const permissions =
-      ROLE_PERMISSIONS[role] || [];
+                new ApiError(
 
-    const hasPermission =
-      requiredPermissions.every(
-        permission =>
-          permissions.includes(permission)
-      );
+                    HTTP_STATUS.UNAUTHORIZED,
 
-    if (!hasPermission) {
+                    "Authentication required."
 
-      return next(
-        new ApiError(
-          HTTP_STATUS.FORBIDDEN,
-          "You do not have permission to perform this action."
-        )
-      );
+                )
 
-    }
+            );
 
-    next();
+        }
 
-  };
+        const role = req.user.role;
+
+        const permissions =
+            ROLE_PERMISSIONS[role] || [];
+
+        const allowed =
+            requiredPermissions.every(permission =>
+                permissions.includes(permission)
+            );
+
+        if (!allowed) {
+
+            return next(
+
+                new ApiError(
+
+                    HTTP_STATUS.FORBIDDEN,
+
+                    "You do not have permission to perform this action."
+
+                )
+
+            );
+
+        }
+
+        next();
+
+    };
 
 };
 

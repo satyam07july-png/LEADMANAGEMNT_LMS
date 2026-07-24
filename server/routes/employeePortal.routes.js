@@ -5,17 +5,11 @@ import roleMiddleware from "../middleware/roleMiddleware.js";
 
 import ROLES from "../constants/roles.js";
 
-import {
-  getEmployeeDashboard,
-} from "../controllers/employeePortal.controller.js";
+import { getEmployeeDashboard } from "../controllers/employeePortal.controller.js";
+
+import { getMyLeadsController } from "../controllers/employeeController.js";
 
 const router = express.Router();
-
-/**
- * =====================================================
- * Employee Dashboard
- * =====================================================
- */
 
 router.get(
   "/dashboard",
@@ -25,6 +19,16 @@ router.get(
     ROLES.COUNSELLOR
   ),
   getEmployeeDashboard
+);
+
+router.get(
+  "/my-leads",
+  authMiddleware,
+  roleMiddleware(
+    ROLES.ADMIN,
+    ROLES.COUNSELLOR
+  ),
+  getMyLeadsController
 );
 
 export default router;

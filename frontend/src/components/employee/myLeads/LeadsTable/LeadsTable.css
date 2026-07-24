@@ -1,0 +1,167 @@
+.leads-table-card{
+
+    background:#ffffff;
+    border-radius:16px;
+    border:1px solid #e5e7eb;
+    overflow:hidden;
+    box-shadow:0 4px 12px rgba(15,23,42,.05);
+
+}
+
+.leads-table{
+
+    width:100%;
+    border-collapse:collapse;
+
+}
+
+.leads-table thead{
+
+    background:#f8fafc;
+
+}
+
+.leads-table th{
+
+    text-align:left;
+    padding:16px;
+    font-size:14px;
+    font-weight:600;
+    color:#334155;
+
+}
+
+.leads-table td{
+
+    padding:16px;
+    border-top:1px solid #f1f5f9;
+
+}
+
+.lead-info{
+
+    display:flex;
+    align-items:center;
+    gap:12px;
+
+}
+
+.lead-avatar{
+
+    width:42px;
+    height:42px;
+    border-radius:50%;
+    background:#2563eb;
+    color:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:600;
+
+}
+
+.lead-info h5{
+
+    margin:0;
+    font-size:15px;
+    color:#0f172a;
+
+}
+
+.lead-info span{
+
+    font-size:13px;
+    color:#64748b;
+
+}
+
+.status,
+.priority{
+
+    padding:6px 12px;
+    border-radius:20px;
+    font-size:12px;
+    font-weight:600;
+
+}
+
+.status.hot{
+
+    background:#fee2e2;
+    color:#dc2626;
+
+}
+
+.priority.high{
+
+    background:#dbeafe;
+    color:#2563eb;
+
+}
+
+.action-buttons{
+
+    display:flex;
+    gap:8px;
+
+}
+
+.action-buttons button{
+
+    width:36px;
+    height:36px;
+    border:none;
+    border-radius:8px;
+    background:#f8fafc;
+    cursor:pointer;
+    transition:.25s;
+
+}
+
+.action-buttons button:hover{
+
+    background:#2563eb;
+    color:#ffffff;
+
+}
+
+@media(max-width:1024px){
+
+    .leads-table{
+
+        display:block;
+        overflow-x:auto;
+        white-space:nowrap;
+
+    }
+
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: 0.2s ease;
+}
+
+.call-btn {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.call-btn:hover {
+  background: #bbf7d0;
+}
+
+.whatsapp-btn {
+  background: #dcfce7;
+  color: #25d366;
+}
+
+.whatsapp-btn:hover {
+  background: #bbf7d0;
+}

@@ -1,156 +1,524 @@
-import { body } from "express-validator";
-import ROLES from "../constants/roles.js";
+import Joi from "joi";
+import ApiError from "../utils/ApiError.js";
 
-export const createEmployeeValidator = [
+/**
+ * =====================================================
+ * Employee Create Schema
+ * =====================================================
+ */
 
-  body("full_name")
-    .trim()
-    .notEmpty()
-    .withMessage("Full name is required.")
-    .isLength({ min: 3, max: 150 })
-    .withMessage("Full name must be between 3 and 150 characters."),
+const createEmployeeSchema = Joi.object({
 
-  body("email")
-    .trim()
-    .notEmpty()
-    .withMessage("Email is required.")
-    .isEmail()
-    .withMessage("Invalid email address.")
-    .normalizeEmail(),
+    full_name: Joi.string()
+        .trim()
+        .min(3)
+        .max(100)
+        .required()
+        .messages({
+            "string.empty": "Full name is required.",
+            "string.min": "Full name must be at least 3 characters.",
+            "string.max": "Full name cannot exceed 100 characters.",
+            "any.required": "Full name is required.",
+        }),
 
-  body("mobile")
-    .trim()
-    .notEmpty()
-    .withMessage("Mobile number is required.")
-    .matches(/^[6-9]\d{9}$/)
-    .withMessage("Invalid mobile number."),
+    email: Joi.string()
+        .trim()
+        .email()
+        .lowercase()
+        .required()
+        .messages({
+            "string.email": "Please enter a valid email address.",
+            "string.empty": "Email is required.",
+            "any.required": "Email is required.",
+        }),
 
-  body("department_id")
-    .notEmpty()
-    .withMessage("Department is required.")
-    .isInt({ min: 1 })
-    .withMessage("Invalid department."),
+    mobile: Joi.string()
+        .trim()
+        .pattern(/^[6-9]\d{9}$/)
+        .required()
+        .messages({
+            "string.pattern.base": "Please enter a valid mobile number.",
+            "string.empty": "Mobile number is required.",
+            "any.required": "Mobile number is required.",
+        }),
 
-  body("designation")
-    .trim()
-    .notEmpty()
-    .withMessage("Designation is required.")
-    .isLength({ min: 2, max: 100 })
-    .withMessage("Designation must be between 2 and 100 characters."),
+    department_id: Joi.number()
+        .integer()
+        .positive()
+        .required()
+        .messages({
+            "number.base": "Department is required.",
+            "any.required": "Department is required.",
+        }),
 
-  body("role")
-    .notEmpty()
-    .withMessage("Role is required.")
-    .isIn(Object.values(ROLES))
-    .withMessage("Invalid role."),
+    designation: Joi.string()
+        .trim()
+        .min(2)
+        .max(100)
+        .required()
+        .messages({
+            "string.empty": "Designation is required.",
+            "any.required": "Designation is required.",
+        }),
 
-  body("employment_type")
-    .notEmpty()
-    .withMessage("Employment type is required.")
-    .isIn([
-      "FULL_TIME",
-      "PART_TIME",
-      "INTERN",
-      "CONTRACT",
-    ])
-    .withMessage("Invalid employment type."),
+    role: Joi.string()
+        .valid("ADMIN", "COUNSELLOR")
+        .required()
+        .messages({
+            "any.only": "Invalid employee role.",
+            "any.required": "Role is required.",
+        }),
 
-  body("status")
-    .notEmpty()
-    .withMessage("Status is required.")
-    .isIn([
-      "ACTIVE",
-      "INACTIVE",
-      "ON_LEAVE",
-      "RESIGNED",
-      "TERMINATED",
-    ])
-    .withMessage("Invalid status."),
+    employment_type: Joi.string()
+        .valid(
+            "FULL_TIME",
+            "PART_TIME",
+            "CONTRACT",
+            "INTERN"
+        )
+        .optional(),
 
-  body("joining_date")
-    .notEmpty()
-    .withMessage("Joining date is required.")
-    .isISO8601()
-    .withMessage("Joining date must be a valid date."),
+    status: Joi.string()
+        .valid(
+            "ACTIVE",
+            "INACTIVE",
+            "ON_LEAVE",
+            "SUSPENDED"
+        )
+        .optional(),
 
-  body("date_of_birth")
-    .optional({ nullable: true })
-    .isISO8601()
-    .withMessage("Date of birth must be a valid date."),
+    joining_date: Joi.date()
+        .optional(),
 
-  body("gender")
-    .optional({ nullable: true })
-    .isIn([
-      "MALE",
-      "FEMALE",
-      "OTHER",
-    ])
-    .withMessage("Invalid gender."),
+    date_of_birth: Joi.date()
+        .optional(),
 
-  body("address")
-    .optional({ nullable: true })
-    .isLength({ max: 500 })
-    .withMessage("Address cannot exceed 500 characters."),
+    gender: Joi.string()
+        .valid(
+            "MALE",
+            "FEMALE",
+            "OTHER"
+        )
+        .optional(),
 
-  body("emergency_contact_name")
-    .optional({ nullable: true })
-    .isLength({ min: 2, max: 150 })
-    .withMessage("Emergency contact name is invalid."),
+    address: Joi.string()
+        .trim()
+        .max(500)
+        .optional(),
 
-  body("emergency_contact")
-    .optional({ nullable: true })
-    .matches(/^[6-9]\d{9}$/)
-    .withMessage("Invalid emergency contact number."),
+    emergency_contact_name: Joi.string()
+        .trim()
+        .max(100)
+        .optional(),
 
-  body("profile_image")
-    .optional({ nullable: true })
-    .isURL()
-    .withMessage("Profile image must be a valid URL.")
+    emergency_contact: Joi.string()
+        .trim()
+        .pattern(/^[6-9]\d{9}$/)
+        .optional(),
 
-];
+    password: Joi.string()
+        .min(8)
+        .max(50)
+        .optional(),
 
-export const updateEmployeeValidator = [
-  body("full_name")
-    .optional()
-    .trim()
-    .isLength({ min: 3, max: 150 })
-    .withMessage("Full name must be between 3 and 150 characters."),
+}).options({
 
-  body("mobile")
-    .optional()
-    .matches(/^[6-9]\d{9}$/)
-    .withMessage("Invalid mobile number."),
+    abortEarly: false,
 
-  body("designation")
-    .optional()
-    .trim()
-    .isLength({ min: 2, max: 100 })
-    .withMessage("Invalid designation."),
+    stripUnknown: true,
 
-  body("role")
-    .optional()
-    .isIn(["ADMIN", "MANAGER", "COUNSELLOR"])
-    .withMessage("Invalid role."),
+});
 
-  body("employment_type")
-    .optional()
-    .isIn([
-      "FULL_TIME",
-      "PART_TIME",
-      "INTERN",
-      "CONTRACT",
-    ])
-    .withMessage("Invalid employment type."),
+/**
+ * =====================================================
+ * Validate Create Employee
+ * =====================================================
+ */
 
-  body("status")
-    .optional()
-    .isIn([
-      "ACTIVE",
-      "INACTIVE",
-      "ON_LEAVE",
-      "RESIGNED",
-      "TERMINATED",
-    ])
-    .withMessage("Invalid status."),
-];
+export const validateCreateEmployee = (
+    req,
+    res,
+    next
+) => {
 
+    const { error, value } =
+        createEmployeeSchema.validate(
+            req.body
+        );
+
+    if (error) {
+
+        const message =
+            error.details
+                .map(item => item.message)
+                .join(", ");
+
+        return next(
+            new ApiError(
+                400,
+                message
+            )
+        );
+
+    }
+
+    req.body = value;
+
+    next();
+
+};
+
+/**
+ * =====================================================
+ * Employee Update Schema
+ * =====================================================
+ */
+
+const updateEmployeeSchema = Joi.object({
+
+    full_name: Joi.string()
+        .trim()
+        .min(3)
+        .max(100)
+        .optional()
+        .messages({
+            "string.min": "Full name must be at least 3 characters.",
+            "string.max": "Full name cannot exceed 100 characters.",
+        }),
+
+    email: Joi.string()
+        .trim()
+        .email()
+        .lowercase()
+        .optional()
+        .messages({
+            "string.email": "Please enter a valid email address.",
+        }),
+
+    mobile: Joi.string()
+        .trim()
+        .pattern(/^[6-9]\d{9}$/)
+        .optional()
+        .messages({
+            "string.pattern.base": "Please enter a valid mobile number.",
+        }),
+
+    department_id: Joi.number()
+        .integer()
+        .positive()
+        .optional(),
+
+    designation: Joi.string()
+        .trim()
+        .min(2)
+        .max(100)
+        .optional(),
+
+    role: Joi.string()
+        .valid(
+            "ADMIN",
+            "COUNSELLOR"
+        )
+        .optional()
+        .messages({
+            "any.only": "Invalid employee role.",
+        }),
+
+    employment_type: Joi.string()
+        .valid(
+            "FULL_TIME",
+            "PART_TIME",
+            "CONTRACT",
+            "INTERN"
+        )
+        .optional(),
+
+    status: Joi.string()
+        .valid(
+            "ACTIVE",
+            "INACTIVE",
+            "ON_LEAVE",
+            "SUSPENDED"
+        )
+        .optional(),
+
+    joining_date: Joi.date()
+        .optional(),
+
+    date_of_birth: Joi.date()
+        .optional(),
+
+    gender: Joi.string()
+        .valid(
+            "MALE",
+            "FEMALE",
+            "OTHER"
+        )
+        .optional(),
+
+    address: Joi.string()
+        .trim()
+        .max(500)
+        .optional(),
+
+    emergency_contact_name: Joi.string()
+        .trim()
+        .max(100)
+        .optional(),
+
+    emergency_contact: Joi.string()
+        .trim()
+        .pattern(/^[6-9]\d{9}$/)
+        .optional(),
+
+}).min(1).options({
+
+    abortEarly: false,
+
+    stripUnknown: true,
+
+});
+
+/**
+ * =====================================================
+ * Validate Update Employee
+ * =====================================================
+ */
+
+export const validateUpdateEmployee = (
+
+    req,
+
+    res,
+
+    next
+
+) => {
+
+    const { error, value } =
+
+        updateEmployeeSchema.validate(
+
+            req.body
+
+        );
+
+    if (error) {
+
+        const message =
+
+            error.details
+
+                .map(item => item.message)
+
+                .join(", ");
+
+        return next(
+
+            new ApiError(
+
+                400,
+
+                message
+
+            )
+
+        );
+
+    }
+
+    req.body = value;
+
+    next();
+
+};
+
+/**
+ * =====================================================
+ * Validate Employee ID
+ * =====================================================
+ */
+
+export const validateEmployeeId = (
+
+    req,
+
+    res,
+
+    next
+
+) => {
+
+    const schema = Joi.object({
+
+        id: Joi.number()
+
+            .integer()
+
+            .positive()
+
+            .required()
+
+            .messages({
+
+                "number.base":
+                    "Employee ID must be a number.",
+
+                "number.integer":
+                    "Employee ID must be an integer.",
+
+                "number.positive":
+                    "Employee ID must be greater than zero.",
+
+                "any.required":
+                    "Employee ID is required."
+
+            })
+
+    });
+
+    const { error, value } =
+
+        schema.validate(
+
+            req.params
+
+        );
+
+    if (error) {
+
+        return next(
+
+            new ApiError(
+
+                400,
+
+                error.details[0].message
+
+            )
+
+        );
+
+    }
+
+    req.params = value;
+
+    next();
+
+};
+
+/**
+ * =====================================================
+ * Employee Filter Schema
+ * =====================================================
+ */
+
+const employeeFilterSchema = Joi.object({
+
+    page: Joi.number()
+        .integer()
+        .min(1)
+        .default(1),
+
+    limit: Joi.number()
+        .integer()
+        .min(1)
+        .max(100)
+        .default(10),
+
+    search: Joi.string()
+        .trim()
+        .allow("")
+        .optional(),
+
+    department_id: Joi.number()
+        .integer()
+        .positive()
+        .optional(),
+
+    role: Joi.string()
+        .valid(
+            "ADMIN",
+            "COUNSELLOR"
+        )
+        .optional(),
+
+    status: Joi.string()
+        .valid(
+            "ACTIVE",
+            "INACTIVE",
+            "ON_LEAVE",
+            "SUSPENDED"
+        )
+        .optional(),
+
+    employment_type: Joi.string()
+        .valid(
+            "FULL_TIME",
+            "PART_TIME",
+            "CONTRACT",
+            "INTERN"
+        )
+        .optional(),
+
+    sort_by: Joi.string()
+        .valid(
+            "full_name",
+            "email",
+            "joining_date",
+            "created_at"
+        )
+        .default("created_at"),
+
+    sort_order: Joi.string()
+        .valid(
+            "ASC",
+            "DESC"
+        )
+        .default("DESC")
+
+}).options({
+
+    abortEarly: false,
+
+    stripUnknown: true,
+
+});
+
+/**
+ * =====================================================
+ * Validate Employee Filters
+ * =====================================================
+ */
+
+export const validateEmployeeFilters = (
+
+    req,
+
+    res,
+
+    next
+
+) => {
+
+    const { error, value } =
+    employeeFilterSchema.validate(req.query);
+
+if (error) {
+
+    return next(
+        new ApiError(
+            400,
+            error.details
+                .map(item => item.message)
+                .join(", ")
+        )
+    );
+
+}
+
+Object.assign(req.query, value);
+
+next();
+
+};
