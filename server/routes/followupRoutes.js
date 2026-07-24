@@ -15,7 +15,7 @@ import {
   bulkDeleteFollowups,
   bulkRestoreFollowups,
   bulkAssignFollowups,
-} from "../controllers/followupcontroller.js";
+} from "../controllers/followupController.js";
 
 import authMiddleware from "../middleware/authmiddleware.js";
 
