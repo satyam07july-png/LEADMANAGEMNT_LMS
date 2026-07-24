@@ -31,11 +31,11 @@ import {
 
 import {
   getMyLeadsRepository,
-} from "../repositories/leadrepository.js";
+} from "../repositories/leadRepository.js";
 
 import {
   findEmployeeByUserIdRepository,
-} from "../repositories/employeerepository.js";
+} from "../repositories/employeeRepository.js";
 
 /* =====================================================
  * Helpers
