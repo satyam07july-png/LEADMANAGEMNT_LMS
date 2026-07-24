@@ -10,7 +10,7 @@ import {
     restoreEmployeeService,
     getEmployeeStatisticsService,
 } from "../services/employeeService.js";
-import { getMyLeadsService } from "../services/employeeservice.js";
+import { getMyLeadsService } from "../services/employeeService.js";
 /**
  * =====================================================
  * Create Employee
