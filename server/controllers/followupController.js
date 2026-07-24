@@ -15,7 +15,7 @@ import {
   bulkDeleteFollowupsService,
   bulkRestoreFollowupsService,
   bulkAssignFollowupsService,
-} from "../services/followupservice.js";
+} from "../services/followupService.js";
 
 
 /**
