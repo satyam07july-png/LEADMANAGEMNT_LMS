@@ -19,7 +19,7 @@ import {
 
 import authMiddleware from "../middleware/authMiddleware.js";
 
-import roleMiddleware from "../middleware/rolemiddleware.js";
+import roleMiddleware from "../middleware/roleMiddleware.js";
 
 const router = Router();
 
