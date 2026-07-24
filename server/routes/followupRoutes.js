@@ -17,7 +17,7 @@ import {
   bulkAssignFollowups,
 } from "../controllers/followupController.js";
 
-import authMiddleware from "../middleware/authmiddleware.js";
+import authMiddleware from "../middleware/authMiddleware.js";
 
 import roleMiddleware from "../middleware/rolemiddleware.js";
 
