@@ -7,7 +7,7 @@ import {
 
 import {
   findEmployeeByUserIdRepository
-} from "../repositories/employeerepository.js";
+} from "../repositories/employeeRepository.js";
 
 export const getEmployeeDashboardService = async (userId) => {
 
