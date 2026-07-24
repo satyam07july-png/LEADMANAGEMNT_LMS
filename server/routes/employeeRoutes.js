@@ -25,7 +25,7 @@ import {
 
 import {
   getMyLeadsController,
-} from "../controllers/employeecontroller.js";
+} from "../controllers/employeeController.js";
 
 const router = Router();
 
